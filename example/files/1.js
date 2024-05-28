@@ -1,7 +1,14 @@
+// foo function
+/**
+ * method foo
+ * @returns {void}
+ * @example foo()
+ */
 function foo() {
-  console.log('foo');
+  console.log('Hello world!');
 }
 
+// bar fimction
 function bar() {
-  console.log('bar');
+  console.log('Hello world!');
 }

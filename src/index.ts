@@ -92,6 +92,10 @@ class DeadCodeChecker {
     return { declaredFunctions, declaredVariables, setupReturnFunctions };
   }
 
+  private removeComments(fileContent: string) {
+    return fileContent.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+  }
+
   public async run() {
     const allFiles = this.getAllFiles(this.filesPath);
     const functionOccurrences: Record<
@@ -136,9 +140,10 @@ class DeadCodeChecker {
 
     allFiles.forEach(filePath => {
       const fileContent = fs.readFileSync(filePath, 'utf8');
+      const cleanedContent = this.removeComments(fileContent);
       Object.keys(functionOccurrences).forEach(func => {
         const usageRegex = new RegExp(`\\b${func}\\b`, 'g');
-        const matches = fileContent.match(usageRegex);
+        const matches = cleanedContent.match(usageRegex);
         if (matches) {
           functionOccurrences[func].count += matches.length;
         }
@@ -146,7 +151,7 @@ class DeadCodeChecker {
 
       Object.keys(variableOccurrences).forEach(variable => {
         const usageRegex = new RegExp(`\\b${variable}\\b`, 'g');
-        const matches = fileContent.match(usageRegex);
+        const matches = cleanedContent.match(usageRegex);
         if (matches) {
           variableOccurrences[variable].count += matches.length;
         }
