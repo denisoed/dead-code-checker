@@ -20,16 +20,20 @@ class DeadCodeChecker {
   }
 
   private getAllFiles(dirPath: string, arrayOfFiles: string[] = []) {
-    const files = fs.readdirSync(dirPath);
-    files.forEach((file: string) => {
-      const fullPath: string = path.join(dirPath, file);
-      if (fs.statSync(fullPath).isDirectory()) {
-        arrayOfFiles = this.getAllFiles(fullPath, arrayOfFiles);
-      } else if (DEFAULT_EXTENSIONS.some(ext => file.endsWith(ext))) {
-        arrayOfFiles.push(fullPath);
-      }
-    });
-    return arrayOfFiles;
+    try {
+      const files = fs.readdirSync(dirPath);
+      files.forEach((file: string) => {
+        const fullPath: string = path.join(dirPath, file);
+        if (fs.statSync(fullPath).isDirectory()) {
+          arrayOfFiles = this.getAllFiles(fullPath, arrayOfFiles);
+        } else if (DEFAULT_EXTENSIONS.some(ext => file.endsWith(ext))) {
+          arrayOfFiles.push(fullPath);
+        }
+      });
+      return arrayOfFiles;
+    } catch (error) {
+      return [];
+    }
   }
 
   private isBuiltInFunctionOrVariable(name: string) {
@@ -103,7 +107,6 @@ class DeadCodeChecker {
   public async run() {
     const allFiles = this.getAllFiles(this.filesPath);
     const setupReturnFunctions = new Set();
-
     for (const filePath of allFiles) {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const {
