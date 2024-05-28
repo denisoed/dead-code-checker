@@ -5,3 +5,7 @@ export interface IDeadCodeInfo {
     line: number;
   }[];
 }
+
+export interface IDeadCodeParams {
+  ignoreFolders: string[];
+}

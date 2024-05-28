@@ -9,10 +9,11 @@ import {
   START_TEXT,
   IGNORE_FOLDERS
 } from './config';
-import { IDeadCodeInfo } from './interfaces';
+import { IDeadCodeInfo, IDeadCodeParams } from './interfaces';
 
 class DeadCodeChecker {
   private filesPath: string = '.';
+  private params: IDeadCodeParams | undefined;
   private deadMap: Record<string, IDeadCodeInfo> = {};
   private deadCodeFound: boolean = false;
   private cliTable = new Table({
@@ -20,7 +21,8 @@ class DeadCodeChecker {
     colWidths: [100, 10, 30]
   });
 
-  constructor(filesPath: string) {
+  constructor(filesPath: string, params?: IDeadCodeParams) {
+    this.params = params;
     this.filesPath = filesPath;
   }
 
@@ -30,7 +32,18 @@ class DeadCodeChecker {
       files.forEach((file: string) => {
         const fullPath: string = path.join(dirPath, file);
         if (fs.statSync(fullPath).isDirectory()) {
-          if (!IGNORE_FOLDERS.includes(file)) {
+          const shouldIgnore = [
+            ...IGNORE_FOLDERS,
+            ...(this.params?.ignoreFolders || [])
+          ].some((pattern: string | RegExp) => {
+            if (typeof pattern === 'string') {
+              return file === pattern;
+            } else if (pattern instanceof RegExp) {
+              return pattern.test(file);
+            }
+            return false;
+          });
+          if (!shouldIgnore) {
             arrayOfFiles = this.getAllFiles(fullPath, arrayOfFiles);
           }
         } else if (DEFAULT_EXTENSIONS.some(ext => file.endsWith(ext))) {
