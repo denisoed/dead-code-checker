@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 const { Command } = require('commander');
-const version = require('./version');
-const checker = require('./checker');
+const DeadCodeChecker = require('../dist/index.js');
 
 const program = new Command();
 
@@ -18,7 +17,8 @@ const options = program.opts();
 if (!Object.keys(options).length) {
   program.outputHelp();
 } else if (options.version) {
-  version();
+  console.log(package.version);
 } else {
-  checker(options);
+  const checker = new DeadCodeChecker(options.folder);
+  checker.run();
 }
