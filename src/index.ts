@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import Table from 'cli-table3';
 import chalk from 'chalk';
-import { IGNORED_FUNCTIONS } from './config';
+import { IGNORED_FUNCTIONS, DEFAULT_EXTENSIONS } from './config';
 
 class DeadCodeChecker {
   private filesPath = '.';
@@ -17,11 +17,7 @@ class DeadCodeChecker {
       const fullPath: string = path.join(dirPath, file);
       if (fs.statSync(fullPath).isDirectory()) {
         arrayOfFiles = this.getAllFiles(fullPath, arrayOfFiles);
-      } else if (
-        file.endsWith('.js') ||
-        file.endsWith('.ts') ||
-        file.endsWith('.vue')
-      ) {
+      } else if (DEFAULT_EXTENSIONS.some(ext => file.endsWith(ext))) {
         arrayOfFiles.push(fullPath);
       }
     });
@@ -158,35 +154,26 @@ class DeadCodeChecker {
       });
     });
 
-    const functionTable = new Table({
+    const cliTable = new Table({
       head: [
         chalk.blueBright('📁 File'),
         chalk.blueBright('🔢 Line'),
-        chalk.blueBright('🔍 Function')
+        chalk.blueBright('🔍 Name')
       ],
       colWidths: [100, 10, 30]
     });
 
-    const variableTable = new Table({
-      head: [
-        chalk.greenBright('📁 File'),
-        chalk.greenBright('🔢 Line'),
-        chalk.greenBright('🔍 Variable')
-      ],
-      colWidths: [100, 10, 30]
-    });
-
-    let unusedFunctionsFound = false;
-    let unusedVariablesFound = false;
+    let deadFunctionsFound = false;
+    let deadVariablesFound = false;
 
     Object.keys(functionOccurrences).forEach(func => {
       const occurrences = functionOccurrences[func];
       const isOnlyInReturn =
         occurrences.count === 2 && setupReturnFunctions.has(func);
       if (occurrences.count === 1 || isOnlyInReturn) {
-        unusedFunctionsFound = true;
+        deadFunctionsFound = true;
         occurrences.declaredIn.forEach(decl => {
-          functionTable.push([decl.filePath, decl.line, func]);
+          cliTable.push([decl.filePath, decl.line, func]);
         });
       }
     });
@@ -194,25 +181,17 @@ class DeadCodeChecker {
     Object.keys(variableOccurrences).forEach(variable => {
       const occurrences = variableOccurrences[variable];
       if (occurrences.count === 1) {
-        unusedVariablesFound = true;
+        deadVariablesFound = true;
         occurrences.declaredIn.forEach(decl => {
-          variableTable.push([decl.filePath, decl.line, variable]);
+          cliTable.push([decl.filePath, decl.line, variable]);
         });
       }
     });
 
-    if (unusedFunctionsFound) {
-      console.log('Unused Functions:');
-      console.log(functionTable.toString());
+    if (deadFunctionsFound || deadVariablesFound) {
+      console.log(cliTable.toString());
     } else {
-      console.log(chalk.greenBright('✅ No unused functions found!'));
-    }
-
-    if (unusedVariablesFound) {
-      console.log('Unused Variables:');
-      console.log(variableTable.toString());
-    } else {
-      console.log(chalk.greenBright('✅ No unused variables found!'));
+      console.log(chalk.greenBright('✅ No dead code found!'));
     }
   }
 }

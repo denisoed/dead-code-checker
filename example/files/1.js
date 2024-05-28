@@ -4,6 +4,9 @@
  * @returns {void}
  * @example foo()
  */
+
+const VARIABLE = 'Hello world!';
+
 function foo() {
   console.log('Hello world!');
 }
