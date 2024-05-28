@@ -19,4 +19,12 @@ export const IGNORED_FUNCTIONS = [
   'destroyed',
   'setup'
 ];
-export const DEFAULT_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.vue'];
+export const DEFAULT_EXTENSIONS = [
+  '.js',
+  '.jsx',
+  '.ts',
+  '.tsx',
+  '.vue',
+  '.svelte',
+  '.astro'
+];

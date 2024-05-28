@@ -6,7 +6,7 @@ import { IGNORED_FUNCTIONS, DEFAULT_EXTENSIONS } from './config';
 import { IDeadCodeInfo } from './interfaces';
 
 class DeadCodeChecker {
-  private filesPath = '.';
+  private filesPath: string = '.';
   private deadMap: Record<string, IDeadCodeInfo> = {};
   private deadCodeFound: boolean = false;
   private cliTable = new Table({
@@ -43,9 +43,9 @@ class DeadCodeChecker {
     const functionRegex = /function\s+([a-zA-Z0-9_]+)/g;
     const arrowFunctionRegex = /const\s+([a-zA-Z0-9_]+)\s*=\s*\(/g;
     const methodRegex = /([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*{/g;
+    const variableRegex = /(?:const|let|var)\s+([a-zA-Z0-9_]+)/g;
     const vueMethodsRegex = /methods\s*:\s*{([^}]*)}/g;
     const setupReturnRegex = /return\s*{([^}]*)}/g;
-    const variableRegex = /(?:const|let|var)\s+([a-zA-Z0-9_]+)/g;
 
     const declaredFunctions: { name: string; line: number }[] = [];
     const declaredVariables: { name: string; line: number }[] = [];
