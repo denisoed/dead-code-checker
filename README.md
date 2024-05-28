@@ -1,5 +1,9 @@
 # Dead Code Checker
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+![Preview](preview.webp)
+
 `Dead Code Checker` is a tool for finding dead code in your JavaScript or TypeScript project. It helps to ensure a cleaner and more maintainable code base.
 
 ## Features
@@ -20,8 +24,14 @@ npx dead-code-checker
 To use Dead Code Checker, simply run the following command in your project directory:
 
 ```bash
-dead-code-checker -p ./src
+npx dead-code-checker -f ./src
 ```
+
+| Option | Args | Description |
+| --- | --- | --- |
+| -h, --help | null | Show all options. |
+| -v, --version | null | **Display Application Version:** Displays the current version of the application. |
+| -f, --folder <folder> | ./src | **Folder to be scanned:** Folder to be scanned (Default: ./src) |
 
 The tool will recursively scan through your project's source files and generate a report of unused functions and variables.
 
