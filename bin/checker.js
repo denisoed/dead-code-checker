@@ -1,3 +1,6 @@
+const DeadCodeChecker = require('../dist/index.js');
+
 module.exports = options => {
-  console.log(options);
+  const checker = new DeadCodeChecker(options.folder);
+  checker.run();
 };
