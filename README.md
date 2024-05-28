@@ -1,11 +1,12 @@
 # Dead Code Checker
 
-`Dead Code Checker` is a tool for finding unused functions and variables in your JavaScript or TypeScript. It helps to identify and remove dead code, ensuring a cleaner and more maintainable codebase.
+`Dead Code Checker` is a tool for finding dead code in your JavaScript or TypeScript project. It helps to ensure a cleaner and more maintainable code base.
 
 ## Features
 
-- `Function Detection:` Identifies declared functions and checks if they are used across your project.
 - `Variable Detection:` Detects declared variables and verifies their usage.
+- `Function Detection:` Identifies declared functions and checks if they are used across your project.
+- `Support any framework:` React, Angular, Vue, and more.
 - `Detailed Report:` Provides a detailed report of unused functions and variables, including the file and line number where they are declared.
 
 ## Installation
@@ -26,11 +27,10 @@ The tool will recursively scan through your project's source files and generate 
 
 ## Example Output
 
-| 📁 File                              | 🔢 Line |     🔍 Name |
-| ------------------------------------ | :-----: | ----------: |
-| /path/to/your/project/src/oneFile.js |   17    |  myFunction |
-| ------------------------------------ | :-----: | ----------: |
-| /path/to/your/project/src/twoFile.js |    4    |  myVariable |
+| 📁 File                              | 🔢 Line |    🔍 Name |
+| ------------------------------------ | :-----: | ---------: |
+| /path/to/your/project/src/oneFile.js |   17    | myFunction |
+| /path/to/your/project/src/twoFile.js |    4    | myVariable |
 
 If no unused functions or variables are found, you'll see a message like this:
 
