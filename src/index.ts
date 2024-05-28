@@ -2,19 +2,16 @@ import fs from 'fs';
 import path from 'path';
 import Table from 'cli-table3';
 import chalk from 'chalk';
-import { IGNORED_FUNCTIONS, DEFAULT_EXTENSIONS } from './config';
+import { IGNORED_FUNCTIONS, DEFAULT_EXTENSIONS, START_TEXT } from './config';
 import { IDeadCodeInfo } from './interfaces';
+import cfonts from 'cfonts';
 
 class DeadCodeChecker {
   private filesPath: string = '.';
   private deadMap: Record<string, IDeadCodeInfo> = {};
   private deadCodeFound: boolean = false;
   private cliTable = new Table({
-    head: [
-      chalk.blueBright('📁 File'),
-      chalk.blueBright('🔢 Line'),
-      chalk.blueBright('🔍 Name')
-    ],
+    head: [chalk.red('📁 File'), chalk.red('🔢 Line'), chalk.red('🔍 Name')],
     colWidths: [100, 10, 30]
   });
 
@@ -23,16 +20,20 @@ class DeadCodeChecker {
   }
 
   private getAllFiles(dirPath: string, arrayOfFiles: string[] = []) {
-    const files = fs.readdirSync(dirPath);
-    files.forEach((file: string) => {
-      const fullPath: string = path.join(dirPath, file);
-      if (fs.statSync(fullPath).isDirectory()) {
-        arrayOfFiles = this.getAllFiles(fullPath, arrayOfFiles);
-      } else if (DEFAULT_EXTENSIONS.some(ext => file.endsWith(ext))) {
-        arrayOfFiles.push(fullPath);
-      }
-    });
-    return arrayOfFiles;
+    try {
+      const files = fs.readdirSync(dirPath);
+      files.forEach((file: string) => {
+        const fullPath: string = path.join(dirPath, file);
+        if (fs.statSync(fullPath).isDirectory()) {
+          arrayOfFiles = this.getAllFiles(fullPath, arrayOfFiles);
+        } else if (DEFAULT_EXTENSIONS.some(ext => file.endsWith(ext))) {
+          arrayOfFiles.push(fullPath);
+        }
+      });
+      return arrayOfFiles;
+    } catch (error) {
+      return [];
+    }
   }
 
   private isBuiltInFunctionOrVariable(name: string) {
@@ -106,7 +107,6 @@ class DeadCodeChecker {
   public async run() {
     const allFiles = this.getAllFiles(this.filesPath);
     const setupReturnFunctions = new Set();
-
     for (const filePath of allFiles) {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const {
@@ -150,6 +150,8 @@ class DeadCodeChecker {
         });
       }
     });
+
+    cfonts.say('Dead Code Checker', START_TEXT);
 
     if (this.deadCodeFound) {
       console.log(this.cliTable.toString());

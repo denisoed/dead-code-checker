@@ -1,11 +1,11 @@
 {
   "name": "dead-code-checker",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Dead code checker",
   "license": "MIT",
-  "repository": "https://github.com/maddevsio/dead-code-checker",
-  "homepage": "https://github.com/maddevsio/dead-code-checker",
-  "bugs": "https://github.com/maddevsio/dead-code-checker/issues",
+  "repository": "https://github.com/denisoed/dead-code-checker",
+  "homepage": "https://github.com/denisoed/dead-code-checker",
+  "bugs": "https://github.com/denisoed/dead-code-checker/issues",
   "author": {
     "name": "Denisoed",
     "email": "denisoed@gmail.com",
@@ -32,53 +32,31 @@
     "make": "rimraf dist && rollup -c && node ./example/index.js",
     "build": "rimraf dist && npm run build:types && rollup -c",
     "build:types": "tsc --emitDeclarationOnly",
-    "prepare": "husky",
     "prepublish": "npm run build && npm run test",
     "format": "prettier \"src/**/*.ts\" --write --config .prettierrc",
     "test": "jest"
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
-      "prettier --write"
-    ],
-    "*.{json,md,yml}": [
-      "prettier --write"
-    ]
   },
   "devDependencies": {
     "@babel/core": "^7.24.3",
     "@babel/preset-env": "^7.24.3",
     "@babel/preset-typescript": "^7.24.1",
     "@babel/register": "^7.23.7",
-    "@commitlint/cli": "19.2.1",
-    "@commitlint/config-conventional": "19.1.0",
     "@rollup/plugin-babel": "6.0.4",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-terser": "^0.4.4",
-    "@semantic-release/changelog": "6.0.3",
-    "@semantic-release/commit-analyzer": "12.0.0",
-    "@semantic-release/git": "10.0.1",
-    "@semantic-release/github": "10.0.2",
-    "@semantic-release/npm": "^12.0.0",
-    "@semantic-release/release-notes-generator": "13.0.0",
-    "@types/cli-progress": "^3.11.5",
     "@types/jest": "^29.5.12",
-    "husky": "^9.0.11",
     "jest": "^29.7.0",
-    "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
     "rimraf": "^5.0.5",
     "rollup": "^4.13.2",
-    "semantic-release": "^23.0.6",
-    "sinon": "^17.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.3"
   },
   "dependencies": {
     "cfonts": "^3.2.0",
-    "cli-progress": "^3.12.0",
+    "cli-table3": "^0.6.5",
     "colors": "^1.4.0",
     "commander": "^12.0.0"
   },

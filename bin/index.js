@@ -10,6 +10,7 @@ program
     '-v, --version',
     'Display Application Version: Displays the current version of the application.'
   )
+  .option('-f, --folder <folder>', 'Folder to be scanned (Default: ./src)')
   .parse(process.argv);
 
 const options = program.opts();
