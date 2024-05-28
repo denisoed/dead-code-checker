@@ -3,9 +3,20 @@ import path from 'path';
 import Table from 'cli-table3';
 import chalk from 'chalk';
 import { IGNORED_FUNCTIONS, DEFAULT_EXTENSIONS } from './config';
+import { IDeadCodeInfo } from './interfaces';
 
 class DeadCodeChecker {
   private filesPath = '.';
+  private deadMap: Record<string, IDeadCodeInfo> = {};
+  private deadCodeFound: boolean = false;
+  private cliTable = new Table({
+    head: [
+      chalk.blueBright('📁 File'),
+      chalk.blueBright('🔢 Line'),
+      chalk.blueBright('🔍 Name')
+    ],
+    colWidths: [100, 10, 30]
+  });
 
   constructor(filesPath: string) {
     this.filesPath = filesPath;
@@ -94,14 +105,6 @@ class DeadCodeChecker {
 
   public async run() {
     const allFiles = this.getAllFiles(this.filesPath);
-    const functionOccurrences: Record<
-      string,
-      { count: number; declaredIn: any[] }
-    > = {};
-    const variableOccurrences: Record<
-      string,
-      { count: number; declaredIn: any[] }
-    > = {};
     const setupReturnFunctions = new Set();
 
     for (const filePath of allFiles) {
@@ -113,23 +116,13 @@ class DeadCodeChecker {
       } = this.getDeclaredFunctionsAndVariables(fileContent);
       localSetupReturnFunctions.forEach(func => setupReturnFunctions.add(func));
 
-      declaredFunctions.forEach(func => {
-        if (!functionOccurrences[func.name]) {
-          functionOccurrences[func.name] = { count: 0, declaredIn: [] };
+      [...declaredVariables, ...declaredFunctions].forEach(code => {
+        if (!this.deadMap[code.name]) {
+          this.deadMap[code.name] = { count: 0, declaredIn: [] };
         }
-        functionOccurrences[func.name].declaredIn.push({
+        this.deadMap[code.name].declaredIn.push({
           filePath,
-          line: func.line
-        });
-      });
-
-      declaredVariables.forEach(variable => {
-        if (!variableOccurrences[variable.name]) {
-          variableOccurrences[variable.name] = { count: 0, declaredIn: [] };
-        }
-        variableOccurrences[variable.name].declaredIn.push({
-          filePath,
-          line: variable.line
+          line: code.line
         });
       });
     }
@@ -137,59 +130,29 @@ class DeadCodeChecker {
     allFiles.forEach(filePath => {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const cleanedContent = this.removeComments(fileContent);
-      Object.keys(functionOccurrences).forEach(func => {
+      Object.keys(this.deadMap).forEach(func => {
         const usageRegex = new RegExp(`\\b${func}\\b`, 'g');
         const matches = cleanedContent.match(usageRegex);
         if (matches) {
-          functionOccurrences[func].count += matches.length;
-        }
-      });
-
-      Object.keys(variableOccurrences).forEach(variable => {
-        const usageRegex = new RegExp(`\\b${variable}\\b`, 'g');
-        const matches = cleanedContent.match(usageRegex);
-        if (matches) {
-          variableOccurrences[variable].count += matches.length;
+          this.deadMap[func].count += matches.length;
         }
       });
     });
 
-    const cliTable = new Table({
-      head: [
-        chalk.blueBright('📁 File'),
-        chalk.blueBright('🔢 Line'),
-        chalk.blueBright('🔍 Name')
-      ],
-      colWidths: [100, 10, 30]
-    });
-
-    let deadFunctionsFound = false;
-    let deadVariablesFound = false;
-
-    Object.keys(functionOccurrences).forEach(func => {
-      const occurrences = functionOccurrences[func];
+    Object.keys(this.deadMap).forEach(func => {
+      const occurrences = this.deadMap[func];
       const isOnlyInReturn =
         occurrences.count === 2 && setupReturnFunctions.has(func);
       if (occurrences.count === 1 || isOnlyInReturn) {
-        deadFunctionsFound = true;
+        this.deadCodeFound = true;
         occurrences.declaredIn.forEach(decl => {
-          cliTable.push([decl.filePath, decl.line, func]);
+          this.cliTable.push([decl.filePath, decl.line, func]);
         });
       }
     });
 
-    Object.keys(variableOccurrences).forEach(variable => {
-      const occurrences = variableOccurrences[variable];
-      if (occurrences.count === 1) {
-        deadVariablesFound = true;
-        occurrences.declaredIn.forEach(decl => {
-          cliTable.push([decl.filePath, decl.line, variable]);
-        });
-      }
-    });
-
-    if (deadFunctionsFound || deadVariablesFound) {
-      console.log(cliTable.toString());
+    if (this.deadCodeFound) {
+      console.log(this.cliTable.toString());
     } else {
       console.log(chalk.greenBright('✅ No dead code found!'));
     }
