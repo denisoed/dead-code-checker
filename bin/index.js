@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const { Command } = require('commander');
+const package = require('../package.json');
 const DeadCodeChecker = require('../dist/index.js');
 
 const program = new Command();

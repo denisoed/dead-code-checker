@@ -2,9 +2,14 @@ import fs from 'fs';
 import path from 'path';
 import Table from 'cli-table3';
 import chalk from 'chalk';
-import { IGNORED_FUNCTIONS, DEFAULT_EXTENSIONS, START_TEXT } from './config';
-import { IDeadCodeInfo } from './interfaces';
 import cfonts from 'cfonts';
+import {
+  IGNORED_NAMES,
+  DEFAULT_EXTENSIONS,
+  START_TEXT,
+  IGNORE_FOLDERS
+} from './config';
+import { IDeadCodeInfo } from './interfaces';
 
 class DeadCodeChecker {
   private filesPath: string = '.';
@@ -25,7 +30,9 @@ class DeadCodeChecker {
       files.forEach((file: string) => {
         const fullPath: string = path.join(dirPath, file);
         if (fs.statSync(fullPath).isDirectory()) {
-          arrayOfFiles = this.getAllFiles(fullPath, arrayOfFiles);
+          if (!IGNORE_FOLDERS.includes(file)) {
+            arrayOfFiles = this.getAllFiles(fullPath, arrayOfFiles);
+          }
         } else if (DEFAULT_EXTENSIONS.some(ext => file.endsWith(ext))) {
           arrayOfFiles.push(fullPath);
         }
@@ -37,16 +44,16 @@ class DeadCodeChecker {
   }
 
   private isBuiltInFunctionOrVariable(name: string) {
-    return IGNORED_FUNCTIONS.includes(name);
+    return IGNORED_NAMES.includes(name);
   }
 
   private getDeclaredFunctionsAndVariables(fileContent: string) {
-    const functionRegex = /function\s+([a-zA-Z0-9_]+)/g;
-    const arrowFunctionRegex = /const\s+([a-zA-Z0-9_]+)\s*=\s*\(/g;
+    const functionRegex = /\bfunction\s+([a-zA-Z0-9_]+)\s*\(/g;
+    const arrowFunctionRegex = /\bconst\s+([a-zA-Z0-9_]+)\s*=\s*\(/g;
     const methodRegex = /([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*{/g;
-    const variableRegex = /(?:const|let|var)\s+([a-zA-Z0-9_]+)/g;
-    const vueMethodsRegex = /methods\s*:\s*{([^}]*)}/g;
-    const setupReturnRegex = /return\s*{([^}]*)}/g;
+    const vueMethodsRegex = /\bmethods\s*:\s*{([^}]*)}/g;
+    const setupReturnRegex = /\breturn\s*{([^}]*)}/g;
+    const variableRegex = /\b(?:const|let|var)\s+([a-zA-Z0-9_]+)\s*=?/g;
 
     const declaredFunctions: { name: string; line: number }[] = [];
     const declaredVariables: { name: string; line: number }[] = [];

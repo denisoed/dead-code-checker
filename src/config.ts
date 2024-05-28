@@ -1,10 +1,11 @@
-export const IGNORED_FUNCTIONS = [
+export const IGNORED_NAMES = [
   'if',
   'for',
   'while',
   'catch',
   'switch',
   'case',
+  'json',
   'const',
   'let',
   'var',
@@ -17,7 +18,8 @@ export const IGNORED_FUNCTIONS = [
   'beforeUpdate',
   'beforeDestroy',
   'destroyed',
-  'setup'
+  'setup',
+  'constructor'
 ];
 export const DEFAULT_EXTENSIONS = [
   '.js',
@@ -28,6 +30,7 @@ export const DEFAULT_EXTENSIONS = [
   '.svelte',
   '.astro'
 ];
+export const IGNORE_FOLDERS = ['node_modules', '.git', 'dist', 'build'];
 export const START_TEXT = {
   font: 'tiny', // define the font face
   align: 'left', // define text alignment
