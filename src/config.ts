@@ -30,7 +30,7 @@ export const DEFAULT_EXTENSIONS = [
   '.svelte',
   '.astro'
 ];
-export const IGNORE_FOLDERS = ['node_modules', '.git', 'dist', 'build'];
+export const IGNORE_FOLDERS = ['node_modules', 'dist', 'build', /^\./];
 export const START_TEXT = {
   font: 'tiny', // define the font face
   align: 'left', // define text alignment
