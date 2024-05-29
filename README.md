@@ -6,6 +6,8 @@
 
 `Dead Code Checker` is a tool for finding dead code in your JavaScript or TypeScript project. It helps to ensure a cleaner and more maintainable code base.
 
+## How it works
+
 The tool will recursively scan through your project's source files and generate a report of unused functions and variables.
 
 ## Features
@@ -33,8 +35,8 @@ npx dead-code-checker -f ./src
 | --- | --- | --- |
 | -h, --help | null | Show all options. |
 | -v, --version | null | **Display Application Version:** Displays the current version of the application. |
-| -f, --folder <folder> | ./src | **Folder to be scanned:** Folder to be scanned (Default: ./src) |
-| -if, --ignoreFolders <folders...> | node_modules dist | **Folders to be ignored:** Folders to be ignored |
+| -f, --folder | ./src | **Folder to be scanned:** Folder to be scanned (Default: ./src) |
+| -if, --ignoreFolders | node_modules dist | **Folders to be ignored:** Folders to be ignored |
 
 ## Example Output
 

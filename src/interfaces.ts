@@ -6,6 +6,12 @@ export interface IDeadCodeInfo {
   }[];
 }
 
+export interface IDeadCodeReport {
+  name: string;
+  line: number;
+  filePath: string;
+}
+
 export interface IDeadCodeParams {
   ignoreFolders: string[];
 }
