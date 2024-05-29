@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import Table from 'cli-table3';
 import chalk from 'chalk';
 import cfonts from 'cfonts';
 import {
@@ -9,17 +8,14 @@ import {
   START_TEXT,
   IGNORE_FOLDERS
 } from './config';
-import { IDeadCodeInfo, IDeadCodeParams } from './interfaces';
+import { IDeadCodeInfo, IDeadCodeParams, IDeadCodeReport } from './interfaces';
 
 class DeadCodeChecker {
   private filesPath: string = '.';
   private params: IDeadCodeParams | undefined;
   private deadMap: Record<string, IDeadCodeInfo> = {};
   private deadCodeFound: boolean = false;
-  private cliTable = new Table({
-    head: [chalk.red('📁 File'), chalk.red('🔢 Line'), chalk.red('🔍 Name')],
-    colWidths: [100, 10, 30]
-  });
+  private reportList: IDeadCodeReport[] = [];
 
   constructor(filesPath: string, params?: IDeadCodeParams) {
     this.params = params;
@@ -124,6 +120,16 @@ class DeadCodeChecker {
     return fileContent.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
   }
 
+  private displayReport() {
+    this.reportList.forEach(report => {
+      console.log(
+        `${chalk.red(report.filePath)}:${chalk.yellow(String(report.line))} - ${chalk.green(
+          report.name
+        )}\n`
+      );
+    });
+  }
+
   public async run() {
     const allFiles = this.getAllFiles(this.filesPath);
     const setupReturnFunctions = new Set();
@@ -166,7 +172,11 @@ class DeadCodeChecker {
       if (occurrences.count === 1 || isOnlyInReturn) {
         this.deadCodeFound = true;
         occurrences.declaredIn.forEach(decl => {
-          this.cliTable.push([decl.filePath, decl.line, func]);
+          this.reportList.push({
+            filePath: decl.filePath,
+            line: decl.line,
+            name: func
+          });
         });
       }
     });
@@ -174,7 +184,7 @@ class DeadCodeChecker {
     cfonts.say('Dead Code Checker', START_TEXT);
 
     if (this.deadCodeFound) {
-      console.log(this.cliTable.toString());
+      this.displayReport();
     } else {
       console.log(chalk.greenBright('✅ No dead code found!'));
     }
