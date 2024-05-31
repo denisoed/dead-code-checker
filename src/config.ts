@@ -1,15 +1,4 @@
 export const IGNORED_NAMES = [
-  'if',
-  'for',
-  'while',
-  'catch',
-  'switch',
-  'case',
-  'json',
-  'const',
-  'let',
-  'var',
-  'function',
   'mounted',
   'unmounted',
   'created',
@@ -18,8 +7,7 @@ export const IGNORED_NAMES = [
   'beforeUpdate',
   'beforeDestroy',
   'destroyed',
-  'setup',
-  'constructor'
+  'setup'
 ];
 export const DEFAULT_EXTENSIONS = [
   '.js',

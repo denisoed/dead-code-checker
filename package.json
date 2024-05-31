@@ -1,6 +1,6 @@
 {
   "name": "dead-code-checker",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Dead code checker",
   "license": "MIT",
   "repository": "https://github.com/denisoed/dead-code-checker",
@@ -29,8 +29,8 @@
     "dead-code-checker": "./bin/index.js"
   },
   "scripts": {
-    "make": "rimraf dist && rollup -c && node ./example/index.js",
     "build": "rimraf dist && npm run build:types && rollup -c",
+    "make": "npm run build && node ./example/index.js",
     "build:types": "tsc --emitDeclarationOnly",
     "prepublish": "npm run build && npm run test",
     "format": "prettier \"src/**/*.ts\" --write --config .prettierrc",
