@@ -1,14 +1,19 @@
+import {
+  RESERVED_WORDS,
+  FUTURE_RESERVED_WORDS,
+  STRICT_MODE_RESERVED_WORDS,
+  VUE_RESERVED_WORDS,
+  REACT_RESERVED_WORDS
+} from './reserved';
+
 export const IGNORED_NAMES = [
-  'mounted',
-  'unmounted',
-  'created',
-  'updated',
-  'beforeMount',
-  'beforeUpdate',
-  'beforeDestroy',
-  'destroyed',
-  'setup'
+  ...RESERVED_WORDS,
+  ...FUTURE_RESERVED_WORDS,
+  ...STRICT_MODE_RESERVED_WORDS,
+  ...VUE_RESERVED_WORDS,
+  ...REACT_RESERVED_WORDS
 ];
+
 export const DEFAULT_EXTENSIONS = [
   '.js',
   '.jsx',

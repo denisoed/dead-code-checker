@@ -1,6 +1,6 @@
 {
   "name": "dead-code-checker",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Dead code checker",
   "license": "MIT",
   "repository": "https://github.com/denisoed/dead-code-checker",
