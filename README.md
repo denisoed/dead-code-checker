@@ -51,7 +51,21 @@ To use Dead Code Checker in CI/CD, you can use the `dead-code-checker` CLI.
 **IMPORTANT: Use the `--ci` option to abort the process when dead code is detected.**
 
 ```bash
-npx dead-code-checker --ci -f ./src
+name: Dead Code Checker CI
+
+on: [push]
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - run: npx dead-code-checker --ci -f ./src
 ```
 
 ## Use as API
