@@ -169,6 +169,10 @@ class DeadCodeChecker {
     }
   }
 
+  public getReport() {
+    return this.reportList;
+  }
+
   public async run() {
     cfonts.say('Dead Code Checker', START_TEXT);
 
@@ -178,10 +182,9 @@ class DeadCodeChecker {
 
     if (this.deadCodeFound) {
       this.displayReport();
-      return this.reportList;
+      if (this.params?.ci) process.exit(1);
     } else {
       console.log(chalk.greenBright('✅ No dead code found!'));
-      return [];
     }
   }
 }

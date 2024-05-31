@@ -13,6 +13,7 @@ export interface IDeadCodeReport {
 }
 
 export interface IDeadCodeParams {
-  ignoreFolders: string[];
-  ignoreNames: string[];
+  ci?: boolean;
+  ignoreFolders?: string[];
+  ignoreNames?: string[];
 }

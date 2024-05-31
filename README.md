@@ -17,13 +17,7 @@ The tool will recursively scan through your project's source files and generate 
 - `Support any framework:` React, Angular, Vue, and more.
 - `Detailed Report:` Provides a detailed report of unused functions and variables, including the file and line number where they are declared.
 
-## Installation
-
-You can install Dead Code Checker using npx:
-
-```bash
-npx dead-code-checker
-```
+## Usa as CLI
 
 To use Dead Code Checker, simply run the following command in your project directory:
 
@@ -35,6 +29,7 @@ npx dead-code-checker -f ./src
 | --- | --- | --- |
 | -h, --help | null | Show all options. |
 | -v, --version | null | Displays the current version of the application. |
+| --ci | null | Abort the process when dead code is detected. |
 | -f, --folder | folder/app | Folder to be scanned (Default: ./src) |
 | -in, --ignoreNames | funcName | Function or variable names to be ignored |
 | -if, --ignoreFolders | folderName | Folders to be ignored |
@@ -49,9 +44,25 @@ If no unused functions or variables are found, you'll see a message like this:
 ✅ No dead code found!
 ```
 
+## Use in CI/CD
+
+To use Dead Code Checker in CI/CD, you can use the `dead-code-checker` CLI.
+
+**IMPORTANT: Use the `--ci` option to abort the process when dead code is detected.**
+
+```bash
+npx dead-code-checker --ci -f ./src
+```
+
 ## Use as API
 
-To use Dead Code Checker as an API, you can import the `DeadCodeChecker` class from the `dead-code-checker` module.
+Install the `dead-code-checker` module as a dependency in your project's package.json file.
+
+```bash
+npm install dead-code-checker --save
+```
+
+Import the `DeadCodeChecker` class from the `dead-code-checker` module.
 
 ```javascript
 const DeadCodeChecker = require('dead-code-checker');
@@ -61,7 +72,9 @@ const checker = new DeadCodeChecker('src/', {
   ignoreFolders: ['tests']
 });
 
-const report = checker.run();
+checker.run();
+
+const report = checker.getReport();
 
 console.log(report);
 ```

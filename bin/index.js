@@ -10,6 +10,7 @@ program
     '-v, --version',
     'Display Application Version: Displays the current version of the application.'
   )
+  .option('--ci', 'Abort the process when dead code is detected.')
   .option('-f, --folder <folder>', 'Folder to be scanned (Default: ./src)')
   .option(
     '-in, --ignoreNames <names...>',
@@ -26,6 +27,7 @@ if (!Object.keys(options).length) {
   console.log(package.version);
 } else {
   const checker = new DeadCodeChecker(options.folder, {
+    ci: options.ci,
     ignoreFolders: options.ignoreFolders || [],
     ignoreNames: options.ignoreNames || []
   });
