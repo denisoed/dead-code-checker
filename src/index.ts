@@ -53,14 +53,15 @@ class DeadCodeChecker {
   }
 
   private isBuiltInFunctionOrVariable(name: string) {
-    return IGNORED_NAMES.includes(name);
+    return [...IGNORED_NAMES, ...(this.params?.ignoreNames || [])].includes(
+      name
+    );
   }
 
   private getDeclaredFunctionsAndVariables(fileContent: string) {
     const functionRegex = /\bfunction\s+([a-zA-Z0-9_]+)\s*\(/g;
     const arrowFunctionRegex = /\bconst\s+([a-zA-Z0-9_]+)\s*=\s*\(/g;
     const methodRegex = /([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*{/g;
-    const vueMethodsRegex = /\bmethods\s*:\s*{([^}]*)}/g;
     const setupReturnRegex = /\breturn\s*{([^}]*)}/g;
     const variableRegex = /\b(?:const|let|var)\s+([a-zA-Z0-9_]+)\s*=?/g;
 
@@ -91,18 +92,6 @@ class DeadCodeChecker {
         }
       }
     });
-
-    while ((match = vueMethodsRegex.exec(fileContent)) !== null) {
-      const methodsContent = match[1];
-      const methodsMatches =
-        methodsContent.match(/([a-zA-Z0-9_]+)\s*\(/g) || [];
-      methodsMatches.forEach((method, index) => {
-        method = method.trim().replace('(', '');
-        if (!this.isBuiltInFunctionOrVariable(method)) {
-          declaredFunctions.push({ name: method, line: lineNumber + index });
-        }
-      });
-    }
 
     while ((match = setupReturnRegex.exec(fileContent)) !== null) {
       const returnContent = match[1];
@@ -143,7 +132,7 @@ class DeadCodeChecker {
       localSetupReturnFunctions.forEach(func => setupReturnFunctions.add(func));
 
       [...declaredVariables, ...declaredFunctions].forEach(code => {
-        if (!this.deadMap[code.name]) {
+        if (typeof this.deadMap[code.name] !== 'object') {
           this.deadMap[code.name] = { count: 0, declaredIn: [] };
         }
         this.deadMap[code.name].declaredIn.push({
@@ -185,8 +174,10 @@ class DeadCodeChecker {
 
     if (this.deadCodeFound) {
       this.displayReport();
+      return this.reportList;
     } else {
       console.log(chalk.greenBright('✅ No dead code found!'));
+      return [];
     }
   }
 }

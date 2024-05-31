@@ -34,21 +34,36 @@ npx dead-code-checker -f ./src
 | Option | Args | Description |
 | --- | --- | --- |
 | -h, --help | null | Show all options. |
-| -v, --version | null | **Display Application Version:** Displays the current version of the application. |
-| -f, --folder | ./src | **Folder to be scanned:** Folder to be scanned (Default: ./src) |
-| -if, --ignoreFolders | node_modules dist | **Folders to be ignored:** Folders to be ignored |
+| -v, --version | null | Displays the current version of the application. |
+| -f, --folder | folder/app | Folder to be scanned (Default: ./src) |
+| -in, --ignoreNames | funcName | Function or variable names to be ignored |
+| -if, --ignoreFolders | folderName | Folders to be ignored |
 
 ## Example Output
 
-| 📁 File                              | 🔢 Line |    🔍 Name |
-| ------------------------------------ | :-----: | ---------: |
-| /path/to/your/project/src/oneFile.js |   17    | myFunction |
-| /path/to/your/project/src/twoFile.js |    4    | myVariable |
+![Report](report.png)
 
 If no unused functions or variables are found, you'll see a message like this:
 
 ```bash
 ✅ No dead code found!
+```
+
+## Use as API
+
+To use Dead Code Checker as an API, you can import the `DeadCodeChecker` class from the `dead-code-checker` module.
+
+```javascript
+const DeadCodeChecker = require('dead-code-checker');
+
+const checker = new DeadCodeChecker('src/', {
+  ignoreNames: ['foo', 'bar'],
+  ignoreFolders: ['tests']
+});
+
+const report = checker.run();
+
+console.log(report);
 ```
 
 ## Contributing
