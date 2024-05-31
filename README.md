@@ -65,7 +65,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - run: npx dead-code-checker --ci -f ./src
+      - run: npm i dead-code-checker -g
+      - run: dead-code-checker --ci -f ./src
 ```
 
 ## Use as API
