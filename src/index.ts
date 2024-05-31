@@ -53,7 +53,9 @@ class DeadCodeChecker {
   }
 
   private isBuiltInFunctionOrVariable(name: string) {
-    return IGNORED_NAMES.includes(name);
+    return [...IGNORED_NAMES, ...(this.params?.ignoreNames || [])].includes(
+      name
+    );
   }
 
   private getDeclaredFunctionsAndVariables(fileContent: string) {
@@ -172,8 +174,10 @@ class DeadCodeChecker {
 
     if (this.deadCodeFound) {
       this.displayReport();
+      return this.reportList;
     } else {
       console.log(chalk.greenBright('✅ No dead code found!'));
+      return [];
     }
   }
 }

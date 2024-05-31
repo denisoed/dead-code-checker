@@ -14,4 +14,5 @@ export interface IDeadCodeReport {
 
 export interface IDeadCodeParams {
   ignoreFolders: string[];
+  ignoreNames: string[];
 }

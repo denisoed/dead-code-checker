@@ -11,6 +11,10 @@ program
     'Display Application Version: Displays the current version of the application.'
   )
   .option('-f, --folder <folder>', 'Folder to be scanned (Default: ./src)')
+  .option(
+    '-in, --ignoreNames <names...>',
+    'Function or variable names to be ignored'
+  )
   .option('-if, --ignoreFolders <folders...>', 'Folders to be ignored')
   .parse(process.argv);
 
@@ -22,7 +26,8 @@ if (!Object.keys(options).length) {
   console.log(package.version);
 } else {
   const checker = new DeadCodeChecker(options.folder, {
-    ignoreFolders: options.ignoreFolders || []
+    ignoreFolders: options.ignoreFolders || [],
+    ignoreNames: options.ignoreNames || []
   });
   checker.run();
 }
