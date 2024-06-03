@@ -16,7 +16,7 @@ class DeadCodeChecker {
   private deadMap: Record<string, IDeadCodeInfo> = {};
   private deadCodeFound: boolean = false;
   private reportList: IDeadCodeReport[] = [];
-  private usedOnlyResult: Set<string> = new Set();
+  private usedOnlyReturn: Set<string> = new Set();
 
   constructor(filesPath: string, params?: IDeadCodeParams) {
     this.params = params;
@@ -59,11 +59,20 @@ class DeadCodeChecker {
     );
   }
 
+  private saveUsedOnlyReturn(content: string) {
+    const matches = content.split(',') || [];
+    matches.forEach(method => {
+      method = method.trim().replace(':', '');
+      this.usedOnlyReturn.add(method);
+    });
+  }
+
   private getDeclaredNames(fileContent: string) {
     const functionRegex = /\bfunction\s+([a-zA-Z0-9_]+)\s*\(/g;
     const arrowFunctionRegex = /\bconst\s+([a-zA-Z0-9_]+)\s*=\s*\(/g;
     const methodRegex = /([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*{/g;
     const onlyInReturnRegex = /\breturn\s*{([^}]*)}/g;
+    const onlyModuleExportsRegex = /\bmodule\.exports\s*=\s*{([^}]*)}/g;
     const variableRegex = /\b(?:const|let|var)\s+([a-zA-Z0-9_]+)\s*=?/g;
 
     const declaredNames: { name: string; line: number }[] = [];
@@ -93,12 +102,11 @@ class DeadCodeChecker {
     });
 
     while ((match = onlyInReturnRegex.exec(fileContent)) !== null) {
-      const returnContent = match[1];
-      const returnMatches = returnContent.split(',') || [];
-      returnMatches.forEach(method => {
-        method = method.trim().replace(':', '');
-        this.usedOnlyResult.add(method);
-      });
+      this.saveUsedOnlyReturn(match[1]);
+    }
+
+    while ((match = onlyModuleExportsRegex.exec(fileContent)) !== null) {
+      this.saveUsedOnlyReturn(match[1]);
     }
 
     return declaredNames;
@@ -106,6 +114,10 @@ class DeadCodeChecker {
 
   private removeComments(fileContent: string) {
     return fileContent.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+  }
+
+  private removeText(fileContent: string) {
+    return fileContent.replace(/(['"])(?:(?=(\\?))\2.)*?\1/g, '');
   }
 
   private displayReport() {
@@ -140,10 +152,11 @@ class DeadCodeChecker {
     const allFiles = this.getAllFiles(this.filesPath);
     for (const filePath of allFiles) {
       const fileContent = fs.readFileSync(filePath, 'utf8');
-      const cleanedContent = this.removeComments(fileContent);
+      const withoutComments = this.removeComments(fileContent);
+      const withoutTexts = this.removeText(withoutComments);
       Object.keys(this.deadMap).forEach(name => {
         const usageRegex = new RegExp(`\\b${name}\\b`, 'g');
-        const matches = cleanedContent.match(usageRegex);
+        const matches = withoutTexts.match(usageRegex);
         if (matches) {
           this.deadMap[name].count += matches.length;
         }
@@ -155,7 +168,7 @@ class DeadCodeChecker {
     for (const name of Object.keys(this.deadMap)) {
       const occurrences = this.deadMap[name];
       const isOnlyInReturn =
-        occurrences.count === 2 && this.usedOnlyResult.has(name);
+        occurrences.count === 2 && this.usedOnlyReturn.has(name);
       if (occurrences.count === 1 || isOnlyInReturn) {
         this.deadCodeFound = true;
         occurrences.declaredIn.forEach(decl => {

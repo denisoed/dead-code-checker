@@ -1,6 +1,6 @@
 {
   "name": "dead-code-checker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dead Code Checker is a tool for finding dead code in your JavaScript or TypeScript project. It helps to ensure a cleaner and more maintainable code base.",
   "license": "MIT",
   "repository": "https://github.com/denisoed/dead-code-checker",
