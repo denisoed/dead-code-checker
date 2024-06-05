@@ -73,7 +73,8 @@ class DeadCodeChecker {
     const methodRegex = /([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*{/g;
     const onlyInReturnRegex = /\breturn\s*{([^}]*)}/g;
     const onlyModuleExportsRegex = /\bmodule\.exports\s*=\s*{([^}]*)}/g;
-    const variableRegex = /\b(?:const|let|var)\s+([a-zA-Z0-9_]+)\s*=?/g;
+    const variableRegex =
+      /\b(?:const|let|var)\s+([a-zA-Z0-9_]+)\s*(?:=|;|\r?\n|$)/g;
 
     const declaredNames: { name: string; line: number }[] = [];
 
@@ -116,10 +117,6 @@ class DeadCodeChecker {
     return fileContent.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
   }
 
-  private removeText(fileContent: string) {
-    return fileContent.replace(/(['"])(?:(?=(\\?))\2.)*?\1/g, '');
-  }
-
   private displayReport() {
     this.reportList.forEach(report => {
       console.log(
@@ -153,10 +150,9 @@ class DeadCodeChecker {
     for (const filePath of allFiles) {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const withoutComments = this.removeComments(fileContent);
-      const withoutTexts = this.removeText(withoutComments);
       Object.keys(this.deadMap).forEach(name => {
         const usageRegex = new RegExp(`\\b${name}\\b`, 'g');
-        const matches = withoutTexts.match(usageRegex);
+        const matches = withoutComments.match(usageRegex);
         if (matches) {
           this.deadMap[name].count += matches.length;
         }
