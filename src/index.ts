@@ -68,7 +68,9 @@ class DeadCodeChecker {
   }
 
   private getDeclaredNames(fileContent: string) {
-    const functionRegex = /\bfunction\s+([a-zA-Z0-9_]+)\s*\(/g;
+    const functionRegex = /\bfunction\s([a-zA-Z0-9_]+)\s*\(/g;
+    const functionExpressionRegex =
+      /\b(?:const|let|var)\s([a-zA-Z0-9_]+)\s*=\s*function\s*\(/g;
     const arrowFunctionRegex = /\bconst\s+([a-zA-Z0-9_]+)\s*=\s*\(/g;
     const methodRegex = /([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*{/g;
     const onlyInReturnRegex = /\breturn\s*{([^}]*)}/g;
@@ -84,6 +86,10 @@ class DeadCodeChecker {
     fileContent.split('\n').forEach(lineContent => {
       lineNumber++;
       if ((match = functionRegex.exec(lineContent)) !== null) {
+        if (!this.isBuiltInFunctionOrVariable(match[1])) {
+          declaredNames.push({ name: match[1], line: lineNumber });
+        }
+      } else if ((match = functionExpressionRegex.exec(lineContent)) !== null) {
         if (!this.isBuiltInFunctionOrVariable(match[1])) {
           declaredNames.push({ name: match[1], line: lineNumber });
         }

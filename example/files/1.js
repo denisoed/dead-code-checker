@@ -16,6 +16,10 @@ function foo() {
   };
 }
 
+const foo2 = function() {
+  console.log('Hello world!');
+};
+
 // bar function
 function bar() {
   console.log('Hello world!');
