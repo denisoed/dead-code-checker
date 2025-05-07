@@ -29,6 +29,10 @@
 - ✅ GitHub repository setup
 - ✅ Documentation (README, examples)
 
+### Recent Improvements
+
+- ✅ Extended file type support to include modern JavaScript/TypeScript module formats (.mjs, .cjs, .mts, .cts)
+
 ## In Progress
 
 - 🔄 Gathering user feedback for refinements
@@ -38,7 +42,7 @@
 
 - 📝 Improve detection algorithms to reduce false positives
 - 📝 Add performance optimizations for large codebases
-- 📝 Consider adding support for additional file types
+- 📝 Consider adding support for additional file types as needed
 - 📝 Explore alternative output formats (JSON, HTML)
 - 📝 Expand test coverage
 - 📝 Add more comprehensive examples
@@ -57,6 +61,7 @@
 - CLI and API interfaces work as expected
 - Documentation provides clear usage instructions
 - Basic examples demonstrate functionality
+- Supports all major JavaScript and TypeScript file formats
 
 ## Next Milestone
 

@@ -22,7 +22,11 @@ export const DEFAULT_EXTENSIONS = [
   '.vue',
   '.svelte',
   '.astro',
-  '.html'
+  '.html',
+  '.mjs',
+  '.cjs',
+  '.mts',
+  '.cts'
 ];
 export const IGNORE_FOLDERS = ['node_modules', 'dist', 'build', /^\./];
 export const START_TEXT = {

@@ -69,7 +69,7 @@ The tool provides configuration options for:
 
 ### File Filtering
 
-- Supports JavaScript, TypeScript, JSX, TSX, Vue, Svelte, and Astro files
+- Supports JavaScript (.js, .jsx, .mjs, .cjs), TypeScript (.ts, .tsx, .mts, .cts), and component files (.vue, .svelte, .astro, .html)
 - Ignores common build directories, node_modules, and hidden files
 - Allows custom ignore patterns for specific project needs
 

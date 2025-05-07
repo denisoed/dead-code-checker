@@ -15,6 +15,13 @@
 - Names with a count of 1 (only declaration, no usage) are considered dead code
 - Special handling exists for names in return statements and module exports
 
+## File Support
+
+- JavaScript: .js, .jsx, .mjs, .cjs
+- TypeScript: .ts, .tsx, .mts, .cts
+- Component files: .vue, .svelte, .astro, .html
+- Prioritizes files that may contain actual code (not config or style files)
+
 ## Project Conventions
 
 - TypeScript is used for type safety
@@ -29,6 +36,7 @@
 - Simple file filtering based on extensions and ignore patterns
 - Configurable options for CLI and API use
 - CI/CD integration with exit codes
+- Comprehensive file type support for all JavaScript/TypeScript module formats
 
 ## User Preferences
 
