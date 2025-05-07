@@ -133,12 +133,17 @@ class DeadCodeChecker {
     });
   }
 
-  private scanFiles() {
+  private scanAndCheckFiles() {
+    // First phase: collect all declarations from all files
     const allFiles = this.getAllFiles(this.filesPath);
+    const fileContents = new Map<string, string>();
+
+    // First pass to collect all declarations
     for (const filePath of allFiles) {
       const fileContent = fs.readFileSync(filePath, 'utf8');
-      const declaredNames = this.getDeclaredNames(fileContent);
+      fileContents.set(filePath, fileContent);
 
+      const declaredNames = this.getDeclaredNames(fileContent);
       declaredNames.forEach(code => {
         if (typeof this.deadMap[code.name] !== 'object') {
           this.deadMap[code.name] = { count: 0, declaredIn: [] };
@@ -149,14 +154,19 @@ class DeadCodeChecker {
         });
       });
     }
-  }
 
-  private chechFiles() {
-    const allFiles = this.getAllFiles(this.filesPath);
-    for (const filePath of allFiles) {
-      const fileContent = fs.readFileSync(filePath, 'utf8');
+    // Second phase: check usages in all files
+    // We need this separate phase because we need to collect all declarations
+    // before we can check for usages
+    const collectedNames = Object.keys(this.deadMap);
+    if (collectedNames.length === 0) {
+      return;
+    }
+
+    for (const [_, fileContent] of fileContents.entries()) {
       const withoutComments = this.removeComments(fileContent);
-      Object.keys(this.deadMap).forEach(name => {
+
+      collectedNames.forEach(name => {
         const usageRegex = new RegExp(`\\b${name}\\b`, 'g');
         const matches = withoutComments.match(usageRegex);
         if (matches) {
@@ -191,8 +201,7 @@ class DeadCodeChecker {
   public async run() {
     cfonts.say('Dead Code Checker', START_TEXT);
 
-    this.scanFiles();
-    this.chechFiles();
+    this.scanAndCheckFiles();
     this.createReport();
 
     if (this.deadCodeFound) {
