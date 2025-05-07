@@ -21,6 +21,7 @@ preview.png
 .husky/
 node_modules/
 example/
+scripts/
 src/
 tests/
 coverage
@@ -30,3 +31,5 @@ tsconfig.json
 commitlint.config.js
 .releaserc.json
 jest.config.ts
+.prettierrc
+.prettierignore
