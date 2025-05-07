@@ -21,7 +21,8 @@ export const DEFAULT_EXTENSIONS = [
   '.tsx',
   '.vue',
   '.svelte',
-  '.astro'
+  '.astro',
+  '.html'
 ];
 export const IGNORE_FOLDERS = ['node_modules', 'dist', 'build', /^\./];
 export const START_TEXT = {

@@ -68,53 +68,158 @@ class DeadCodeChecker {
   }
 
   private getDeclaredNames(fileContent: string) {
-    const functionRegex = /\bfunction\s([a-zA-Z0-9_]+)\s*\(/g;
+    // Clean content from comments to avoid false positives
+    const cleanedContent = this.removeComments(fileContent);
+
+    // Regular functions: function name()
+    const functionRegex = /\bfunction\s+([a-zA-Z0-9_$]+)\s*\(/g;
+
+    // Function expressions: const/let/var name = function()
     const functionExpressionRegex =
-      /\b(?:const|let|var)\s([a-zA-Z0-9_]+)\s*=\s*function\s*\(/g;
-    const arrowFunctionRegex = /\bconst\s+([a-zA-Z0-9_]+)\s*=\s*\(/g;
-    const methodRegex = /([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*{/g;
+      /\b(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*function\s*\(/g;
+
+    // Arrow functions: const/let/var name = () =>
+    const arrowFunctionRegex =
+      /\b(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:\([^)]*\)|[a-zA-Z0-9_$]+)\s*=>/g;
+
+    // Class methods: methodName() {} or methodName = () =>
+    const classMethodRegex =
+      /(?:^\s*|\s+)(?:async\s+)?([a-zA-Z0-9_$]+)\s*(?:\([^)]*\)\s*{|\s*=\s*(?:\([^)]*\)|[a-zA-Z0-9_$]+)\s*=>)/gm;
+
+    // Object methods: { methodName() {} or methodName: function() {} or methodName: () => {} }
+    const objectMethodRegex =
+      /(?:^\s*|\s+)(?:async\s+)?([a-zA-Z0-9_$]+)\s*(?:\([^)]*\)\s*{|:\s*function\s*\(|:\s*(?:\([^)]*\)|[a-zA-Z0-9_$]+)\s*=>)/g;
+
+    // Variable declarations: const/let/var name = or const/let/var name;
+    const variableRegex =
+      /\b(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*(?:=|;|\r?\n|$)/g;
+
+    // Module exports and return statements
     const onlyInReturnRegex = /\breturn\s*{([^}]*)}/g;
     const onlyModuleExportsRegex = /\bmodule\.exports\s*=\s*{([^}]*)}/g;
-    const variableRegex =
-      /\b(?:const|let|var)\s+([a-zA-Z0-9_]+)\s*(?:=|;|\r?\n|$)/g;
+    const esModuleExportsRegex =
+      /\bexport\s+(?:const|let|var|function|class)\s+([a-zA-Z0-9_$]+)/g;
+    const exportDefaultRegex =
+      /\bexport\s+default\s+(?:function|class)?\s*([a-zA-Z0-9_$]+)/g;
 
-    const declaredNames: { name: string; line: number }[] = [];
+    // Use a Map to store declarations with name as key to prevent duplicates
+    // The map will store the line number for each name
+    const declarationMap = new Map<string, number>();
 
+    // Process export statements
     let match;
+    while ((match = esModuleExportsRegex.exec(cleanedContent)) !== null) {
+      if (!this.isBuiltInFunctionOrVariable(match[1])) {
+        // Find the line number
+        const lineNumber =
+          (cleanedContent.substring(0, match.index).match(/\n/g) || []).length +
+          1;
+        declarationMap.set(match[1], lineNumber);
+      }
+    }
+
+    while ((match = exportDefaultRegex.exec(cleanedContent)) !== null) {
+      if (match[1] && !this.isBuiltInFunctionOrVariable(match[1])) {
+        const lineNumber =
+          (cleanedContent.substring(0, match.index).match(/\n/g) || []).length +
+          1;
+        declarationMap.set(match[1], lineNumber);
+      }
+    }
+
+    // Process all other declarations by lines for better line number tracking
+    const lines = cleanedContent.split('\n');
     let lineNumber = 0;
 
-    fileContent.split('\n').forEach(lineContent => {
+    lines.forEach(lineContent => {
       lineNumber++;
-      if ((match = functionRegex.exec(lineContent)) !== null) {
-        if (!this.isBuiltInFunctionOrVariable(match[1])) {
-          declaredNames.push({ name: match[1], line: lineNumber });
+
+      // Reset regex indices for each line
+      functionRegex.lastIndex = 0;
+      functionExpressionRegex.lastIndex = 0;
+      arrowFunctionRegex.lastIndex = 0;
+      variableRegex.lastIndex = 0;
+      objectMethodRegex.lastIndex = 0;
+
+      // Check for function declarations
+      while ((match = functionRegex.exec(lineContent)) !== null) {
+        if (
+          !this.isBuiltInFunctionOrVariable(match[1]) &&
+          !declarationMap.has(match[1])
+        ) {
+          declarationMap.set(match[1], lineNumber);
         }
-      } else if ((match = functionExpressionRegex.exec(lineContent)) !== null) {
-        if (!this.isBuiltInFunctionOrVariable(match[1])) {
-          declaredNames.push({ name: match[1], line: lineNumber });
+      }
+
+      // Check for function expressions
+      while ((match = functionExpressionRegex.exec(lineContent)) !== null) {
+        if (
+          !this.isBuiltInFunctionOrVariable(match[1]) &&
+          !declarationMap.has(match[1])
+        ) {
+          declarationMap.set(match[1], lineNumber);
         }
-      } else if ((match = arrowFunctionRegex.exec(lineContent)) !== null) {
-        if (!this.isBuiltInFunctionOrVariable(match[1])) {
-          declaredNames.push({ name: match[1], line: lineNumber });
+      }
+
+      // Check for arrow functions
+      while ((match = arrowFunctionRegex.exec(lineContent)) !== null) {
+        if (
+          !this.isBuiltInFunctionOrVariable(match[1]) &&
+          !declarationMap.has(match[1])
+        ) {
+          declarationMap.set(match[1], lineNumber);
         }
-      } else if ((match = methodRegex.exec(lineContent)) !== null) {
-        if (!this.isBuiltInFunctionOrVariable(match[1])) {
-          declaredNames.push({ name: match[1], line: lineNumber });
+      }
+
+      // Check for object methods
+      while ((match = objectMethodRegex.exec(lineContent)) !== null) {
+        if (
+          !this.isBuiltInFunctionOrVariable(match[1]) &&
+          !declarationMap.has(match[1])
+        ) {
+          declarationMap.set(match[1], lineNumber);
         }
-      } else if ((match = variableRegex.exec(lineContent)) !== null) {
-        if (!this.isBuiltInFunctionOrVariable(match[1])) {
-          declaredNames.push({ name: match[1], line: lineNumber });
+      }
+
+      // Check for variable declarations
+      while ((match = variableRegex.exec(lineContent)) !== null) {
+        if (
+          !this.isBuiltInFunctionOrVariable(match[1]) &&
+          !declarationMap.has(match[1])
+        ) {
+          declarationMap.set(match[1], lineNumber);
         }
       }
     });
 
-    while ((match = onlyInReturnRegex.exec(fileContent)) !== null) {
+    // Class methods may span multiple lines, so we process them against the whole content
+    classMethodRegex.lastIndex = 0;
+    while ((match = classMethodRegex.exec(cleanedContent)) !== null) {
+      if (
+        !this.isBuiltInFunctionOrVariable(match[1]) &&
+        !declarationMap.has(match[1])
+      ) {
+        const lineNumber =
+          (cleanedContent.substring(0, match.index).match(/\n/g) || []).length +
+          1;
+        declarationMap.set(match[1], lineNumber);
+      }
+    }
+
+    // Process return and exports object properties
+    while ((match = onlyInReturnRegex.exec(cleanedContent)) !== null) {
       this.saveUsedOnlyReturn(match[1]);
     }
 
-    while ((match = onlyModuleExportsRegex.exec(fileContent)) !== null) {
+    while ((match = onlyModuleExportsRegex.exec(cleanedContent)) !== null) {
       this.saveUsedOnlyReturn(match[1]);
     }
+
+    // Convert the map to the required array format
+    const declaredNames: { name: string; line: number }[] = [];
+    declarationMap.forEach((line, name) => {
+      declaredNames.push({ name, line });
+    });
 
     return declaredNames;
   }
