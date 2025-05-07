@@ -22,7 +22,8 @@ const plugins = [
   nodeResolve({ extensions }),
   commonjs(),
   babel({
-    extensions
+    extensions,
+    babelHelpers: 'bundled'
   }),
   terser()
 ];
@@ -33,20 +34,24 @@ export default [
     external,
     output: [
       {
-        file: pkg.module,
+        file: 'dist/index.mjs',
         format: 'esm',
-        globals
+        globals,
+        exports: 'auto'
       },
       {
-        file: pkg.main,
+        file: 'dist/index.cjs',
         format: 'cjs',
-        globals
+        globals,
+        exports: 'auto',
+        interop: 'auto'
       },
       {
-        name: pkg.name,
+        name: pkg.name.replace(/-/g, ''),
         file: pkg.browser,
         format: 'umd',
-        globals
+        globals,
+        exports: 'auto'
       }
     ],
     plugins

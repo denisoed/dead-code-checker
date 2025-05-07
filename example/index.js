@@ -1,4 +1,4 @@
-const DeadCodeChecker = require('../dist/index.js');
+import DeadCodeChecker from '../dist/index.mjs';
 
 const checker = new DeadCodeChecker('example/files');
 
