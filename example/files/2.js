@@ -1,5 +1,3 @@
-const { foo } = require('./1.js');
-
 function test1() {
   console.log('I feel like I let you down.');
 }

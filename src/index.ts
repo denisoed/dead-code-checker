@@ -16,7 +16,8 @@ class DeadCodeChecker {
   private deadMap: Record<string, IDeadCodeInfo> = {};
   private deadCodeFound: boolean = false;
   private reportList: IDeadCodeReport[] = [];
-  private usedOnlyReturn: Set<string> = new Set();
+  private exportedSymbols: Set<string> = new Set();
+  private importedSymbols: Map<string, string[]> = new Map(); // Map symbol name to files where imported
 
   constructor(filesPath: string, params?: IDeadCodeParams) {
     this.params = params;
@@ -59,12 +60,118 @@ class DeadCodeChecker {
     );
   }
 
-  private saveUsedOnlyReturn(content: string) {
+  private saveExportedSymbols(content: string) {
     const matches = content.split(',') || [];
     matches.forEach(method => {
       method = method.trim().replace(':', '');
-      this.usedOnlyReturn.add(method);
+      this.exportedSymbols.add(method);
     });
+  }
+
+  private processImportsAndExports(fileContent: string, filePath: string) {
+    // CommonJS exports
+    const moduleExportsRegex = /\bmodule\.exports\s*=\s*{([^}]*)}/g;
+    const exportsPropertyRegex = /\bexports\.([a-zA-Z0-9_$]+)\s*=/g;
+
+    // ES Module exports
+    const esNamedExportRegex =
+      /\bexport\s+(?:const|let|var|function|class)\s+([a-zA-Z0-9_$]+)/g;
+    const esObjectExportRegex = /\bexport\s*{([^}]*)}/g;
+    const exportDefaultRegex =
+      /\bexport\s+default\s+(?:function|class)?\s*([a-zA-Z0-9_$]+)/g;
+
+    // CommonJS imports
+    const requireDestructuringRegex =
+      /\bconst\s*{([^}]*)}\s*=\s*require\s*\(['"](.*?)['"]\)/g;
+    const requireDirectRegex =
+      /\bconst\s+([a-zA-Z0-9_$]+)\s*=\s*require\s*\(['"](.*?)['"]\)(?:\.([a-zA-Z0-9_$]+))?/g;
+
+    // ES Module imports
+    const importNamedRegex = /\bimport\s*{([^}]*)}\s*from\s*['"](.*?)['"];?/g;
+    const importDefaultRegex =
+      /\bimport\s+([a-zA-Z0-9_$]+)\s+from\s*['"](.*?)['"];?/g;
+
+    // Return statements with objects
+    const returnObjectRegex = /\breturn\s*{([^}]*)}/g;
+
+    // Process CommonJS exports
+    let match;
+    while ((match = moduleExportsRegex.exec(fileContent)) !== null) {
+      this.saveExportedSymbols(match[1]);
+    }
+
+    while ((match = exportsPropertyRegex.exec(fileContent)) !== null) {
+      this.exportedSymbols.add(match[1]);
+    }
+
+    // Process ES Module exports
+    while ((match = esNamedExportRegex.exec(fileContent)) !== null) {
+      this.exportedSymbols.add(match[1]);
+    }
+
+    while ((match = esObjectExportRegex.exec(fileContent)) !== null) {
+      this.saveExportedSymbols(match[1]);
+    }
+
+    while ((match = exportDefaultRegex.exec(fileContent)) !== null) {
+      if (match[1]) {
+        this.exportedSymbols.add(match[1]);
+      }
+    }
+
+    // Process CommonJS imports
+    while ((match = requireDestructuringRegex.exec(fileContent)) !== null) {
+      const importedNames = match[1].split(',').map(n => n.trim());
+      importedNames.forEach(name => {
+        // Handle "name as alias" pattern
+        const parts = name.split(/\s+as\s+/);
+        const actualName = parts[0].trim();
+        if (actualName) {
+          if (!this.importedSymbols.has(actualName)) {
+            this.importedSymbols.set(actualName, []);
+          }
+          this.importedSymbols.get(actualName)?.push(filePath);
+        }
+      });
+    }
+
+    while ((match = requireDirectRegex.exec(fileContent)) !== null) {
+      if (match[3]) {
+        // Handle const moduleName = require('module').propertyName
+        if (!this.importedSymbols.has(match[3])) {
+          this.importedSymbols.set(match[3], []);
+        }
+        this.importedSymbols.get(match[3])?.push(filePath);
+      }
+    }
+
+    // Process ES Module imports
+    while ((match = importNamedRegex.exec(fileContent)) !== null) {
+      const importedNames = match[1].split(',').map(n => n.trim());
+      importedNames.forEach(name => {
+        // Handle "name as alias" pattern
+        const parts = name.split(/\s+as\s+/);
+        const actualName = parts[0].trim();
+        if (actualName) {
+          if (!this.importedSymbols.has(actualName)) {
+            this.importedSymbols.set(actualName, []);
+          }
+          this.importedSymbols.get(actualName)?.push(filePath);
+        }
+      });
+    }
+
+    while ((match = importDefaultRegex.exec(fileContent)) !== null) {
+      if (!this.importedSymbols.has(match[1])) {
+        this.importedSymbols.set(match[1], []);
+      }
+      this.importedSymbols.get(match[1])?.push(filePath);
+    }
+
+    // Process return statements with objects
+    while ((match = returnObjectRegex.exec(fileContent)) !== null) {
+      this.saveExportedSymbols(match[1]);
+    }
   }
 
   private getDeclaredNames(fileContent: string) {
@@ -94,9 +201,7 @@ class DeadCodeChecker {
     const variableRegex =
       /\b(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*(?:=|;|\r?\n|$)/g;
 
-    // Module exports and return statements
-    const onlyInReturnRegex = /\breturn\s*{([^}]*)}/g;
-    const onlyModuleExportsRegex = /\bmodule\.exports\s*=\s*{([^}]*)}/g;
+    // ES Module exports
     const esModuleExportsRegex =
       /\bexport\s+(?:const|let|var|function|class)\s+([a-zA-Z0-9_$]+)/g;
     const exportDefaultRegex =
@@ -206,15 +311,6 @@ class DeadCodeChecker {
       }
     }
 
-    // Process return and exports object properties
-    while ((match = onlyInReturnRegex.exec(cleanedContent)) !== null) {
-      this.saveUsedOnlyReturn(match[1]);
-    }
-
-    while ((match = onlyModuleExportsRegex.exec(cleanedContent)) !== null) {
-      this.saveUsedOnlyReturn(match[1]);
-    }
-
     // Convert the map to the required array format
     const declaredNames: { name: string; line: number }[] = [];
     declarationMap.forEach((line, name) => {
@@ -258,6 +354,9 @@ class DeadCodeChecker {
           line: code.line
         });
       });
+
+      // Process imports and exports
+      this.processImportsAndExports(fileContent, filePath);
     }
 
     // Second phase: check usages in all files
@@ -282,11 +381,30 @@ class DeadCodeChecker {
   }
 
   private createReport() {
+    // First pass: collect regular dead code
     for (const name of Object.keys(this.deadMap)) {
       const occurrences = this.deadMap[name];
-      const isOnlyInReturn =
-        occurrences.count === 2 && this.usedOnlyReturn.has(name);
-      if (occurrences.count === 1 || isOnlyInReturn) {
+
+      // Consider a symbol dead if:
+      // 1. It appears only once (declared but not used)
+      // 2. It is used only in exports/returns (count=2 and in exportedSymbols)
+      // 3. It is exported and imported but not used beyond import (count=3 and in both exportedSymbols and importedSymbols)
+      // 4. It is imported and used only at that import location (occurrences > 0 and in importedSymbols but not used beyond that)
+      const isOnlyExported =
+        occurrences.count === 2 && this.exportedSymbols.has(name);
+      const isExportedAndImported =
+        occurrences.count === 3 &&
+        this.exportedSymbols.has(name) &&
+        this.importedSymbols.has(name);
+      const isImportedButNotUsed =
+        this.importedSymbols.has(name) && !(occurrences.count > 3); // If used beyond import, count would be > 3
+
+      if (
+        occurrences.count === 1 ||
+        isOnlyExported ||
+        isExportedAndImported ||
+        isImportedButNotUsed
+      ) {
         this.deadCodeFound = true;
         occurrences.declaredIn.forEach(decl => {
           this.reportList.push({
@@ -294,6 +412,25 @@ class DeadCodeChecker {
             line: decl.line,
             name: name
           });
+        });
+      }
+    }
+
+    // Second pass: detect imported symbols that don't exist in declarations
+    // (this happens when someone imports something that doesn't exist or isn't exported)
+    for (const [importedSymbol, files] of this.importedSymbols) {
+      // Skip if we already processed this symbol
+      if (this.deadMap[importedSymbol]) continue;
+
+      // If it's imported but not in our declarations, it's likely a dead import
+      this.deadCodeFound = true;
+
+      // Add an entry for each file where this symbol was imported
+      for (const filePath of files) {
+        this.reportList.push({
+          filePath,
+          line: 0, // We don't have exact line information
+          name: `${importedSymbol} (imported but not found)`
         });
       }
     }
