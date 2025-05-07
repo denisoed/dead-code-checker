@@ -3,7 +3,10 @@
   "version": "1.0.3",
   "description": "Dead Code Checker is a tool for finding dead code in your JavaScript or TypeScript project. It helps to ensure a cleaner and more maintainable code base.",
   "license": "MIT",
-  "repository": "https://github.com/denisoed/dead-code-checker",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/denisoed/dead-code-checker.git"
+  },
   "homepage": "https://github.com/denisoed/dead-code-checker",
   "bugs": "https://github.com/denisoed/dead-code-checker/issues",
   "author": {
@@ -28,7 +31,7 @@
     "dist"
   ],
   "bin": {
-    "dead-code-checker": "./bin/index.js"
+    "dead-code-checker": "bin/index.js"
   },
   "scripts": {
     "build": "rimraf dist && npm run build:types && rollup -c",
