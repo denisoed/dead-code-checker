@@ -10,13 +10,6 @@ export interface Declaration {
 }
 
 /**
- * Checks if a file is an HTML file
- */
-export function isHtmlFile(filePath: string): boolean {
-  return filePath.endsWith('.html');
-}
-
-/**
  * Checks if a name is a built-in function or variable
  */
 export function isBuiltInFunctionOrVariable(
@@ -250,22 +243,6 @@ export function addDeclaration(
 }
 
 /**
- * Processes imports and exports in a file
- */
-export function processImportsAndExports(
-  fileContent: string,
-  filePath: string,
-  exportedSymbols: Set<string>,
-  importedSymbols: Map<string, string[]>
-): void {
-  processCommonJSExports(fileContent, exportedSymbols);
-  processESModuleExports(fileContent, exportedSymbols);
-  processCommonJSImports(fileContent, filePath, importedSymbols);
-  processESModuleImports(fileContent, filePath, importedSymbols);
-  processReturnStatements(fileContent, exportedSymbols);
-}
-
-/**
  * Saves exported symbols to the set
  */
 export function saveExportedSymbols(
@@ -428,53 +405,4 @@ export function processReturnStatements(
   while ((match = REGEX.RETURN_OBJECT.exec(fileContent)) !== null) {
     saveExportedSymbols(match[1], exportedSymbols);
   }
-}
-
-/**
- * Processes HTML file: extracts script src dependencies and declarations from inline scripts
- */
-export function processHtmlDependencies(
-  filePath: string,
-  readFileContent: (filePath: string) => string,
-  findDeclarations: (
-    content: string,
-    filePath: string,
-    isIgnoredFn: (name: string) => boolean
-  ) => Declaration[],
-  isIgnoredFn: (name: string) => boolean
-): {
-  dependencies: string[];
-  inlineDeclarations: { name: string; line: number }[];
-} {
-  const content = readFileContent(filePath);
-  if (!content) return { dependencies: [], inlineDeclarations: [] };
-
-  // Найти все <script src="..."></script>
-  const scriptSrcRegex = /<script\s+(?:[^>]*?\s+)?src=["']([^"']+)["'][^>]*>/g;
-  const dependencies: string[] = [];
-  let match;
-  while ((match = scriptSrcRegex.exec(content)) !== null) {
-    dependencies.push(match[1]);
-  }
-
-  // Найти все inline-скрипты и их декларации
-  const scriptContentRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/g;
-  let matchContent;
-  const inlineDeclarations: { name: string; line: number }[] = [];
-  while ((matchContent = scriptContentRegex.exec(content)) !== null) {
-    const script = matchContent[1].trim();
-    if (script) {
-      // Определяем линию начала скрипта в HTML
-      const beforeScript = content.slice(0, matchContent.index);
-      const scriptStartLine = beforeScript.split('\n').length;
-      const declaredNames = findDeclarations(script, filePath, isIgnoredFn);
-      declaredNames.forEach(code => {
-        inlineDeclarations.push({
-          name: code.name,
-          line: scriptStartLine + code.line - 1
-        });
-      });
-    }
-  }
-  return { dependencies, inlineDeclarations };
 }

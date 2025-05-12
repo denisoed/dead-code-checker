@@ -1,4 +1,6 @@
+import { REGEX } from '../config';
 import { IDeadCodeInfo } from '../interfaces';
+import { removeComments } from './fileSystem';
 
 /**
  * Counts the occurrences of a name in the content
@@ -75,7 +77,6 @@ export function analyzeUsages(
   collectedNames: string[],
   files: Map<string, string>,
   deadMap: Record<string, IDeadCodeInfo>,
-  cleanContentFn: (content: string) => string,
   exportedSymbols: Set<string>,
   importedSymbols: Map<string, string[]>
 ): void {
@@ -126,11 +127,10 @@ export function analyzeUsages(
 
   // First pass: collect HTML files and their script dependencies
   for (const [filePath, fileContent] of files.entries()) {
+    const withoutComments = removeComments(fileContent);
     if (filePath.endsWith('.html')) {
       const scriptMatches = Array.from(
-        fileContent.matchAll(
-          /<script\s+(?:[^>]*?\s+)?src=["']([^"']+)["'][^>]*>/g
-        )
+        withoutComments.matchAll(REGEX.HTML_SCRIPT_SRC)
       );
       const scriptSrcs = new Set(scriptMatches.map(match => match[1]));
       htmlFilesWithScripts.set(filePath, scriptSrcs);
@@ -139,7 +139,7 @@ export function analyzeUsages(
 
   // Analyze usage after import
   for (const [filePath, fileContent] of files.entries()) {
-    const withoutComments = cleanContentFn(fileContent);
+    const withoutComments = removeComments(fileContent);
     const isHtmlFile = filePath.endsWith('.html');
 
     collectedNames.forEach(name => {
@@ -158,7 +158,7 @@ export function analyzeUsages(
         // Only count usage if the variable is defined in an imported script
         if (isDeclaredInImportedScript) {
           const scriptContent = Array.from(
-            withoutComments.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)
+            withoutComments.matchAll(REGEX.HTML_SCRIPT_CONTENT)
           )
             .map(match => match[1])
             .join('\n');

@@ -97,5 +97,5 @@ export const REGEX = {
   HTML_SCRIPT_CONTENT: /<script\b[^>]*>([\s\S]*?)<\/script>/g,
 
   // Comments
-  COMMENTS: /\/\*[\s\S]*?\*\/|\/\/.*/g
+  COMMENTS: /\/\*[\s\S]*?\*\/|\/\/.*|<!--([\s\S]*?)-->/g
 };

@@ -21,7 +21,6 @@ export {
   findESModuleExports,
   findClassMethods,
   addDeclaration,
-  processImportsAndExports,
   saveExportedSymbols,
   processCommonJSExports,
   processESModuleExports,
