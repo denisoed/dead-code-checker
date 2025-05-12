@@ -243,22 +243,6 @@ export function addDeclaration(
 }
 
 /**
- * Processes imports and exports in a file
- */
-export function processImportsAndExports(
-  fileContent: string,
-  filePath: string,
-  exportedSymbols: Set<string>,
-  importedSymbols: Map<string, string[]>
-): void {
-  processCommonJSExports(fileContent, exportedSymbols);
-  processESModuleExports(fileContent, exportedSymbols);
-  processCommonJSImports(fileContent, filePath, importedSymbols);
-  processESModuleImports(fileContent, filePath, importedSymbols);
-  processReturnStatements(fileContent, exportedSymbols);
-}
-
-/**
  * Saves exported symbols to the set
  */
 export function saveExportedSymbols(

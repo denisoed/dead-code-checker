@@ -1,4 +1,6 @@
+import { REGEX } from '../config';
 import { IDeadCodeInfo } from '../interfaces';
+import { removeComments } from './fileSystem';
 
 /**
  * Counts the occurrences of a name in the content
@@ -69,21 +71,14 @@ export function analyzeSymbolUsage(
 }
 
 /**
- * Analyzes usages of names in files
+ * Initializes structure with zero counters for tracking dead code
  */
-export function analyzeUsages(
+function initializeDeadCodeStructure(
   collectedNames: string[],
-  files: Map<string, string>,
   deadMap: Record<string, IDeadCodeInfo>,
-  cleanContentFn: (content: string) => string,
   exportedSymbols: Set<string>,
   importedSymbols: Map<string, string[]>
 ): void {
-  if (collectedNames.length === 0) {
-    return;
-  }
-
-  // Initialize structure with zero counters
   collectedNames.forEach(name => {
     if (deadMap[name]) {
       deadMap[name].declarationCount = deadMap[name].declaredIn.length;
@@ -96,8 +91,17 @@ export function analyzeUsages(
       deadMap[name].importedIn = [];
     }
   });
+}
 
-  // Fill information about exports and imports
+/**
+ * Populates information about exports and imports
+ */
+function populateExportImportInfo(
+  collectedNames: string[],
+  deadMap: Record<string, IDeadCodeInfo>,
+  exportedSymbols: Set<string>,
+  importedSymbols: Map<string, string[]>
+): void {
   collectedNames.forEach(name => {
     if (deadMap[name]) {
       // Exports
@@ -120,14 +124,135 @@ export function analyzeUsages(
       }
     }
   });
+}
+
+/**
+ * Collects HTML files and their script dependencies
+ */
+function collectHtmlScriptDependencies(
+  files: Map<string, string>
+): Map<string, Set<string>> {
+  const htmlFilesWithScripts = new Map<string, Set<string>>();
+
+  for (const [filePath, fileContent] of files.entries()) {
+    const withoutComments = removeComments(fileContent);
+    if (filePath.endsWith('.html')) {
+      const scriptMatches = Array.from(
+        withoutComments.matchAll(REGEX.HTML_SCRIPT_SRC)
+      );
+      const scriptSrcs = new Set(scriptMatches.map(match => match[1]));
+      htmlFilesWithScripts.set(filePath, scriptSrcs);
+    }
+  }
+
+  return htmlFilesWithScripts;
+}
+
+/**
+ * Analyzes usage in HTML files
+ */
+function analyzeHtmlFileUsage(
+  fileContent: string,
+  name: string,
+  deadMap: Record<string, IDeadCodeInfo>,
+  scriptSrcs: Set<string>
+): void {
+  const withoutComments = removeComments(fileContent);
+  const isDeclaredInImportedScript = deadMap[name].declaredIn.some(decl => {
+    const declaredFileName = decl.filePath.split('/').pop() || '';
+    return scriptSrcs.has(declaredFileName);
+  });
+
+  // Only count usage if the variable is defined in an imported script
+  if (isDeclaredInImportedScript) {
+    const scriptContent = Array.from(
+      withoutComments.matchAll(REGEX.HTML_SCRIPT_CONTENT)
+    )
+      .map(match => match[1])
+      .join('\n');
+
+    if (scriptContent.includes(name)) {
+      deadMap[name].usageCount++;
+    }
+  }
+}
+
+/**
+ * Updates information about usage after import
+ */
+function updateUsageAfterImport(
+  filePath: string,
+  name: string,
+  deadMap: Record<string, IDeadCodeInfo>,
+  usageInfo: UsageContext
+): void {
+  const importIndex = deadMap[name].importedIn.findIndex(
+    item => item.filePath === filePath
+  );
+
+  if (importIndex !== -1) {
+    // Found record about import of the symbol in this file
+    if (usageInfo.usageCount > 0) {
+      deadMap[name].importedIn[importIndex].usedAfterImport = true;
+      deadMap[name].usageCount += usageInfo.usageCount;
+    }
+  } else if (
+    deadMap[name].declaredIn.some(decl => decl.filePath === filePath)
+  ) {
+    // Symbol declared in this file
+    if (usageInfo.usageCount > 0) {
+      deadMap[name].usageCount += usageInfo.usageCount;
+    }
+  }
+}
+
+/**
+ * Analyzes usages of names in files
+ */
+export function analyzeUsages(
+  collectedNames: string[],
+  files: Map<string, string>,
+  deadMap: Record<string, IDeadCodeInfo>,
+  exportedSymbols: Set<string>,
+  importedSymbols: Map<string, string[]>
+): void {
+  if (collectedNames.length === 0) {
+    return;
+  }
+
+  // Initialize structure with zero counters
+  initializeDeadCodeStructure(
+    collectedNames,
+    deadMap,
+    exportedSymbols,
+    importedSymbols
+  );
+
+  // Fill information about exports and imports
+  populateExportImportInfo(
+    collectedNames,
+    deadMap,
+    exportedSymbols,
+    importedSymbols
+  );
+
+  // Track HTML files that have script imports
+  const htmlFilesWithScripts = collectHtmlScriptDependencies(files);
 
   // Analyze usage after import
   for (const [filePath, fileContent] of files.entries()) {
-    const withoutComments = cleanContentFn(fileContent);
+    const withoutComments = removeComments(fileContent);
 
     collectedNames.forEach(name => {
       if (!deadMap[name]) return;
-      // Analyze usage context
+
+      // For HTML files, check both inline scripts and imported scripts
+      if (filePath.endsWith('.html')) {
+        const scriptSrcs = htmlFilesWithScripts.get(filePath) || new Set();
+        analyzeHtmlFileUsage(fileContent, name, deadMap, scriptSrcs);
+      }
+
+      // Regular file analysis
       const isExported = exportedSymbols.has(name);
       const isImported =
         importedSymbols.has(name) &&
@@ -141,24 +266,7 @@ export function analyzeUsages(
       );
 
       // Update information about usage after import
-      const importIndex = deadMap[name].importedIn.findIndex(
-        item => item.filePath === filePath
-      );
-
-      if (importIndex !== -1) {
-        // Found record about import of the symbol in this file
-        if (usageInfo.usageCount > 0) {
-          deadMap[name].importedIn[importIndex].usedAfterImport = true;
-          deadMap[name].usageCount += usageInfo.usageCount;
-        }
-      } else if (
-        deadMap[name].declaredIn.some(decl => decl.filePath === filePath)
-      ) {
-        // Symbol declared in this file
-        if (usageInfo.usageCount > 0) {
-          deadMap[name].usageCount += usageInfo.usageCount;
-        }
-      }
+      updateUsageAfterImport(filePath, name, deadMap, usageInfo);
     });
   }
 }
@@ -172,24 +280,6 @@ export function isDeadCode(
   exportedSymbols: Set<string>,
   importedSymbols: Map<string, string[]>
 ): boolean {
-  // Debug output
-  console.log(
-    `Analyzing ${name}:`,
-    JSON.stringify(
-      {
-        usageCount: occurrences.usageCount,
-        declarationCount: occurrences.declarationCount,
-        exportCount: occurrences.exportCount,
-        importCount: occurrences.importCount,
-        exported: exportedSymbols.has(name),
-        imported: importedSymbols.has(name),
-        importedIn: occurrences.importedIn
-      },
-      null,
-      2
-    )
-  );
-
   // Case 1: Imported but not exported — always dead/incorrect
   if (importedSymbols.has(name) && !exportedSymbols.has(name)) {
     return true;

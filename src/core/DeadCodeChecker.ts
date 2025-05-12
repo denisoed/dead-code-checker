@@ -2,11 +2,15 @@ import chalk from 'chalk';
 import cfonts from 'cfonts';
 import { START_TEXT } from '../config';
 import { IDeadCodeInfo, IDeadCodeParams, IDeadCodeReport } from '../interfaces';
-import { getAllFiles, readFileContent, removeComments } from './fileSystem';
+import { getAllFiles, readFileContent } from './fileSystem';
 import {
   findDeclarations,
-  processImportsAndExports,
-  isBuiltInFunctionOrVariable
+  isBuiltInFunctionOrVariable,
+  processReturnStatements,
+  processESModuleImports,
+  processCommonJSImports,
+  processESModuleExports,
+  processCommonJSExports
 } from './declarations';
 import { analyzeUsages } from './analysis';
 import { createReport, displayReport } from './reporting';
@@ -18,7 +22,7 @@ class DeadCodeChecker {
   private deadCodeFound: boolean = false;
   private reportList: IDeadCodeReport[] = [];
   private exportedSymbols: Set<string> = new Set();
-  private importedSymbols: Map<string, string[]> = new Map(); // Map symbol name to files where imported
+  private importedSymbols: Map<string, string[]> = new Map();
 
   constructor(filesPath: string, params?: IDeadCodeParams) {
     this.params = params;
@@ -38,7 +42,7 @@ class DeadCodeChecker {
       }
     }
 
-    // First phase: collect all declarations from all files
+    // Process all files for declarations and imports/exports
     for (const filePath of allFiles) {
       const fileContent = fileContents.get(filePath);
       if (!fileContent) continue;
@@ -67,21 +71,18 @@ class DeadCodeChecker {
         });
       });
 
-      // Process imports and exports
-      processImportsAndExports(
-        fileContent,
-        filePath,
-        this.exportedSymbols,
-        this.importedSymbols
-      );
+      processCommonJSExports(fileContent, this.exportedSymbols);
+      processESModuleExports(fileContent, this.exportedSymbols);
+      processCommonJSImports(fileContent, filePath, this.importedSymbols);
+      processESModuleImports(fileContent, filePath, this.importedSymbols);
+      processReturnStatements(fileContent, this.exportedSymbols);
     }
 
-    // Second phase: check usages in all files
+    // Analyze usages in all files
     analyzeUsages(
       Object.keys(this.deadMap),
       fileContents,
       this.deadMap,
-      removeComments,
       this.exportedSymbols,
       this.importedSymbols
     );
@@ -92,7 +93,6 @@ class DeadCodeChecker {
     return isBuiltInFunctionOrVariable(name, ignoreNames);
   }
 
-  // Public methods
   public getReport(): IDeadCodeReport[] {
     return this.reportList;
   }
