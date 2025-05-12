@@ -92,6 +92,10 @@ export const REGEX = {
   // Return statements with objects
   RETURN_OBJECT: /\breturn\s*{([^}]*)}/g,
 
+  // HTML script imports
+  HTML_SCRIPT_SRC: /<script\s+(?:[^>]*?\s+)?src=["']([^"']+)["'][^>]*>/g,
+  HTML_SCRIPT_CONTENT: /<script\b[^>]*>([\s\S]*?)<\/script>/g,
+
   // Comments
   COMMENTS: /\/\*[\s\S]*?\*\/|\/\/.*/g
 };

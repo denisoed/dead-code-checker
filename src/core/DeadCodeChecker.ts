@@ -6,10 +6,13 @@ import { getAllFiles, readFileContent, removeComments } from './fileSystem';
 import {
   findDeclarations,
   processImportsAndExports,
-  isBuiltInFunctionOrVariable
+  isBuiltInFunctionOrVariable,
+  processHtmlDependencies,
+  isHtmlFile
 } from './declarations';
 import { analyzeUsages } from './analysis';
 import { createReport, displayReport } from './reporting';
+import path from 'path';
 
 class DeadCodeChecker {
   private filesPath: string = '.';
@@ -18,11 +21,53 @@ class DeadCodeChecker {
   private deadCodeFound: boolean = false;
   private reportList: IDeadCodeReport[] = [];
   private exportedSymbols: Set<string> = new Set();
-  private importedSymbols: Map<string, string[]> = new Map(); // Map symbol name to files where imported
+  private importedSymbols: Map<string, string[]> = new Map();
+  private htmlDependencies: Map<string, string[]> = new Map(); // Map HTML files to their script dependencies
 
   constructor(filesPath: string, params?: IDeadCodeParams) {
     this.params = params;
     this.filesPath = filesPath;
+  }
+
+  private processHtmlDependencies(filePath: string): void {
+    const { dependencies, inlineDeclarations } = processHtmlDependencies(
+      filePath,
+      readFileContent,
+      findDeclarations,
+      this.isBuiltInFunctionOrVariable.bind(this)
+    );
+    this.htmlDependencies.set(filePath, dependencies);
+    inlineDeclarations.forEach(code => {
+      if (typeof this.deadMap[code.name] !== 'object') {
+        this.deadMap[code.name] = {
+          declaredIn: [],
+          declarationCount: 0,
+          exportCount: 0,
+          importCount: 0,
+          usageCount: 0,
+          exportedFrom: [],
+          importedIn: []
+        };
+      }
+      this.deadMap[code.name].declaredIn.push({
+        filePath,
+        line: code.line
+      });
+    });
+    dependencies.forEach(dep => {
+      if (!dep.startsWith('http')) {
+        const normalizedPath = path.resolve(this.filesPath, dep);
+        const fileContent = readFileContent(normalizedPath);
+        if (fileContent) {
+          processImportsAndExports(
+            fileContent,
+            normalizedPath,
+            this.exportedSymbols,
+            this.importedSymbols
+          );
+        }
+      }
+    });
   }
 
   private scanAndCheckFiles(): void {
@@ -30,15 +75,18 @@ class DeadCodeChecker {
     const allFiles = getAllFiles(this.filesPath, [], this.params);
     const fileContents = new Map<string, string>();
 
-    // Read file contents
+    // Read file contents and process HTML files first
     for (const filePath of allFiles) {
       const fileContent = readFileContent(filePath);
       if (fileContent) {
         fileContents.set(filePath, fileContent);
+        if (isHtmlFile(filePath)) {
+          this.processHtmlDependencies(filePath);
+        }
       }
     }
 
-    // First phase: collect all declarations from all files
+    // Process all files for declarations and imports/exports
     for (const filePath of allFiles) {
       const fileContent = fileContents.get(filePath);
       if (!fileContent) continue;
@@ -67,7 +115,6 @@ class DeadCodeChecker {
         });
       });
 
-      // Process imports and exports
       processImportsAndExports(
         fileContent,
         filePath,
@@ -76,7 +123,7 @@ class DeadCodeChecker {
       );
     }
 
-    // Second phase: check usages in all files
+    // Analyze usages in all files
     analyzeUsages(
       Object.keys(this.deadMap),
       fileContents,
@@ -92,7 +139,6 @@ class DeadCodeChecker {
     return isBuiltInFunctionOrVariable(name, ignoreNames);
   }
 
-  // Public methods
   public getReport(): IDeadCodeReport[] {
     return this.reportList;
   }

@@ -121,13 +121,55 @@ export function analyzeUsages(
     }
   });
 
+  // Track HTML files that have script imports
+  const htmlFilesWithScripts = new Map<string, Set<string>>();
+
+  // First pass: collect HTML files and their script dependencies
+  for (const [filePath, fileContent] of files.entries()) {
+    if (filePath.endsWith('.html')) {
+      const scriptMatches = Array.from(
+        fileContent.matchAll(
+          /<script\s+(?:[^>]*?\s+)?src=["']([^"']+)["'][^>]*>/g
+        )
+      );
+      const scriptSrcs = new Set(scriptMatches.map(match => match[1]));
+      htmlFilesWithScripts.set(filePath, scriptSrcs);
+    }
+  }
+
   // Analyze usage after import
   for (const [filePath, fileContent] of files.entries()) {
     const withoutComments = cleanContentFn(fileContent);
+    const isHtmlFile = filePath.endsWith('.html');
 
     collectedNames.forEach(name => {
       if (!deadMap[name]) return;
-      // Analyze usage context
+
+      // For HTML files, check both inline scripts and imported scripts
+      if (isHtmlFile) {
+        const scriptSrcs = htmlFilesWithScripts.get(filePath) || new Set();
+        const isDeclaredInImportedScript = deadMap[name].declaredIn.some(
+          decl => {
+            const declaredFileName = decl.filePath.split('/').pop() || '';
+            return scriptSrcs.has(declaredFileName);
+          }
+        );
+
+        // Only count usage if the variable is defined in an imported script
+        if (isDeclaredInImportedScript) {
+          const scriptContent = Array.from(
+            withoutComments.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)
+          )
+            .map(match => match[1])
+            .join('\n');
+
+          if (scriptContent.includes(name)) {
+            deadMap[name].usageCount++;
+          }
+        }
+      }
+
+      // Regular file analysis
       const isExported = exportedSymbols.has(name);
       const isImported =
         importedSymbols.has(name) &&
@@ -172,24 +214,6 @@ export function isDeadCode(
   exportedSymbols: Set<string>,
   importedSymbols: Map<string, string[]>
 ): boolean {
-  // Debug output
-  console.log(
-    `Analyzing ${name}:`,
-    JSON.stringify(
-      {
-        usageCount: occurrences.usageCount,
-        declarationCount: occurrences.declarationCount,
-        exportCount: occurrences.exportCount,
-        importCount: occurrences.importCount,
-        exported: exportedSymbols.has(name),
-        imported: importedSymbols.has(name),
-        importedIn: occurrences.importedIn
-      },
-      null,
-      2
-    )
-  );
-
   // Case 1: Imported but not exported — always dead/incorrect
   if (importedSymbols.has(name) && !exportedSymbols.has(name)) {
     return true;
