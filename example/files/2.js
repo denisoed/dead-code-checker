@@ -1,4 +1,4 @@
-const { foo } = require('./1.js');
+import { obj2 } from './1';
 
 function test1() {
   console.log('I feel like I let you down.');

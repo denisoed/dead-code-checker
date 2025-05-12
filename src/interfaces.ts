@@ -1,8 +1,16 @@
 export interface IDeadCodeInfo {
-  count: number;
+  declarationCount: number;
+  exportCount: number;
+  importCount: number;
+  usageCount: number;
   declaredIn: {
     filePath: string;
     line: number;
+  }[];
+  exportedFrom: string[];
+  importedIn: {
+    filePath: string;
+    usedAfterImport: boolean;
   }[];
 }
 

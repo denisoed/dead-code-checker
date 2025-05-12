@@ -11,6 +11,7 @@ The project is currently at a stable state with a released version of 1.0.4. It 
 - API interface is available for programmatic use
 - Support for multiple JavaScript frameworks is in place
 - CI/CD integration is supported
+- Recently expanded file type support to include additional JavaScript/TypeScript module formats (.mjs, .cjs, .mts, .cts)
 
 ## Recent Changes
 
@@ -18,6 +19,7 @@ The project is currently at a stable state with a released version of 1.0.4. It 
 - Basic documentation is in place with README and examples
 - NPM packaging is configured for distribution
 - GitHub repository is set up with workflows
+- Added support for additional JavaScript and TypeScript module file extensions (.mjs, .cjs, .mts, .cts)
 
 ## Active Decisions
 
@@ -30,6 +32,9 @@ The project is currently at a stable state with a released version of 1.0.4. It 
 3. **Report Format**: Simple CLI output with file paths, line numbers, and names
    - Pros: Easy to read and understand
    - Cons: May benefit from more structured output formats (JSON, HTML, etc.)
+4. **File Extensions**: Focused on including all file types that may contain JavaScript/TypeScript code
+   - Pros: Comprehensive coverage of code files
+   - Cons: May need regular updates as new formats emerge
 
 ## Current Challenges
 

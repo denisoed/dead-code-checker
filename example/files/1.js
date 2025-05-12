@@ -1,11 +1,14 @@
-// foo function
-/**
- * method foo
- * @returns {void}
- * @example foo()
- */
-
 const VARIABLE = 'Hello world!';
+
+const obj = {
+  objMethod: function () {
+    console.log('Hello world!');
+  }
+};
+
+const obj2 = {
+  key: 'value'
+};
 
 // Return VARIABLE
 function foo() {
@@ -16,7 +19,7 @@ function foo() {
   };
 }
 
-const foo2 = function() {
+const foo2 = function () {
   console.log('Hello world!');
 };
 
@@ -30,5 +33,7 @@ function bar1() {
 }
 
 module.exports = {
-  foo
+  foo,
+  obj,
+  obj2
 };
