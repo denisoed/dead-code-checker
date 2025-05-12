@@ -51,7 +51,15 @@ class DeadCodeChecker {
 
       declaredNames.forEach(code => {
         if (typeof this.deadMap[code.name] !== 'object') {
-          this.deadMap[code.name] = { count: 0, declaredIn: [] };
+          this.deadMap[code.name] = {
+            declaredIn: [],
+            declarationCount: 0,
+            exportCount: 0,
+            importCount: 0,
+            usageCount: 0,
+            exportedFrom: [],
+            importedIn: []
+          };
         }
         this.deadMap[code.name].declaredIn.push({
           filePath,
@@ -73,7 +81,9 @@ class DeadCodeChecker {
       Object.keys(this.deadMap),
       fileContents,
       this.deadMap,
-      removeComments
+      removeComments,
+      this.exportedSymbols,
+      this.importedSymbols
     );
   }
 

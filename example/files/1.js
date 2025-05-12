@@ -6,6 +6,10 @@ const obj = {
   }
 };
 
+const obj2 = {
+  key: 'value'
+};
+
 // Return VARIABLE
 function foo() {
   console.log('Hello world!');
@@ -30,5 +34,6 @@ function bar1() {
 
 module.exports = {
   foo,
-  obj
+  obj,
+  obj2
 };

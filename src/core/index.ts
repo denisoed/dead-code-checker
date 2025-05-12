@@ -33,7 +33,13 @@ export {
 } from './declarations';
 
 // Analysis
-export { countUsages, analyzeUsages, isDeadCode } from './analysis';
+export {
+  countUsages,
+  analyzeUsages,
+  isDeadCode,
+  analyzeSymbolUsage,
+  UsageContext
+} from './analysis';
 
 // Reporting
 export { createReport, displayReport } from './reporting';
