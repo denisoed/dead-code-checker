@@ -1,5 +1,6 @@
 import { REGEX, IGNORED_NAMES } from '../config';
 import { findLineNumber, removeComments } from './fileSystem';
+import { IImportedSymbol } from '../interfaces';
 
 /**
  * Type for declaration with name and line number
@@ -316,21 +317,21 @@ export function processESModuleExports(
 export function processCommonJSImports(
   fileContent: string,
   filePath: string,
-  importedSymbols: Map<string, string[]>
+  importedSymbols: Map<string, IImportedSymbol[]>
 ): void {
   let match;
 
   // Process const { name } = require('...')
   REGEX.REQUIRE_DESTRUCTURING.lastIndex = 0;
   while ((match = REGEX.REQUIRE_DESTRUCTURING.exec(fileContent)) !== null) {
-    processImportedNames(match[1], filePath, importedSymbols);
+    processImportedNames(match[1], filePath, match[2], importedSymbols);
   }
 
   // Process const name = require('...').property
   REGEX.REQUIRE_DIRECT.lastIndex = 0;
   while ((match = REGEX.REQUIRE_DIRECT.exec(fileContent)) !== null) {
     if (match[3]) {
-      addImportedSymbol(match[3], filePath, importedSymbols);
+      addImportedSymbol(match[3], filePath, match[2], importedSymbols);
     }
   }
 }
@@ -341,20 +342,20 @@ export function processCommonJSImports(
 export function processESModuleImports(
   fileContent: string,
   filePath: string,
-  importedSymbols: Map<string, string[]>
+  importedSymbols: Map<string, IImportedSymbol[]>
 ): void {
   let match;
 
   // Process import { name } from '...'
   REGEX.IMPORT_NAMED.lastIndex = 0;
   while ((match = REGEX.IMPORT_NAMED.exec(fileContent)) !== null) {
-    processImportedNames(match[1], filePath, importedSymbols);
+    processImportedNames(match[1], filePath, match[2], importedSymbols);
   }
 
   // Process import name from '...'
   REGEX.IMPORT_DEFAULT.lastIndex = 0;
   while ((match = REGEX.IMPORT_DEFAULT.exec(fileContent)) !== null) {
-    addImportedSymbol(match[1], filePath, importedSymbols);
+    addImportedSymbol(match[1], filePath, match[2], importedSymbols);
   }
 }
 
@@ -364,7 +365,8 @@ export function processESModuleImports(
 export function processImportedNames(
   namesString: string,
   filePath: string,
-  importedSymbols: Map<string, string[]>
+  importSource: string,
+  importedSymbols: Map<string, IImportedSymbol[]>
 ): void {
   const importedNames = namesString.split(',').map(n => n.trim());
   importedNames.forEach(name => {
@@ -372,7 +374,7 @@ export function processImportedNames(
     const parts = name.split(/\s+as\s+/);
     const actualName = parts[0].trim();
     if (actualName) {
-      addImportedSymbol(actualName, filePath, importedSymbols);
+      addImportedSymbol(actualName, filePath, importSource, importedSymbols);
     }
   });
 }
@@ -383,12 +385,17 @@ export function processImportedNames(
 export function addImportedSymbol(
   name: string,
   filePath: string,
-  importedSymbols: Map<string, string[]>
+  importSource: string,
+  importedSymbols: Map<string, IImportedSymbol[]>
 ): void {
   if (!importedSymbols.has(name)) {
     importedSymbols.set(name, []);
   }
-  importedSymbols.get(name)?.push(filePath);
+  importedSymbols.get(name)?.push({
+    filePath,
+    importSource,
+    usedAfterImport: false
+  });
 }
 
 /**

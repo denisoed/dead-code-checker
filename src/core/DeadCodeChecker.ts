@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import cfonts from 'cfonts';
 import { START_TEXT } from '../config';
-import { IDeadCodeInfo, IDeadCodeParams, IDeadCodeReport } from '../interfaces';
+import { IDeadCodeInfo, IDeadCodeParams, IDeadCodeReport, IImportedSymbol } from '../interfaces';
 import { getAllFiles, readFileContent } from './fileSystem';
 import {
   findDeclarations,
@@ -22,14 +22,14 @@ class DeadCodeChecker {
   private deadCodeFound: boolean = false;
   private reportList: IDeadCodeReport[] = [];
   private exportedSymbols: Set<string> = new Set();
-  private importedSymbols: Map<string, string[]> = new Map();
+  private importedSymbols: Map<string, IImportedSymbol[]> = new Map();
 
   constructor(filesPath: string, params?: IDeadCodeParams) {
     this.params = params;
     this.filesPath = filesPath;
   }
 
-  private scanAndCheckFiles(): void {
+  private scanAndCheckFiles(): Map<string, string> {
     // Get all files to check
     const allFiles = getAllFiles(this.filesPath, [], this.params);
     const fileContents = new Map<string, string>();
@@ -86,6 +86,8 @@ class DeadCodeChecker {
       this.exportedSymbols,
       this.importedSymbols
     );
+
+    return fileContents;
   }
 
   private isBuiltInFunctionOrVariable(name: string): boolean {
@@ -100,13 +102,14 @@ class DeadCodeChecker {
   public async run(): Promise<void> {
     cfonts.say('Dead Code Checker', START_TEXT);
 
-    this.scanAndCheckFiles();
+    const fileContents = this.scanAndCheckFiles();
 
-    // Generate report
+    // Generate report with file contents for better type detection
     this.reportList = createReport(
       this.deadMap,
       this.exportedSymbols,
-      this.importedSymbols
+      this.importedSymbols,
+      fileContents
     );
 
     // Update dead code flag
