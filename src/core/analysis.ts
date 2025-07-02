@@ -124,13 +124,15 @@ export function countActualUsage(content: string, name: string): number {
     if (
       // Skip import lines that contain this symbol
       (trimmedLine.startsWith('import ') && trimmedLine.includes(name)) ||
-      // Skip export lines only if they are exporting THIS symbol
+      // Skip export lines only if they are exporting THIS symbol (exact match, not usage)
       (trimmedLine.startsWith('export ') && (
         trimmedLine.includes(`export ${name}`) || 
         trimmedLine.includes(`export { ${name}`) ||
         trimmedLine.includes(`export {${name}`) ||
         trimmedLine.includes(`export * as ${name}`) ||
-        trimmedLine.includes(`export default ${name}`)
+        // Only skip if it's exactly "export default symbolName" (not "export default symbolName(...)")
+        new RegExp(`export\\s+default\\s+${name}\\s*$`).test(trimmedLine) ||
+        new RegExp(`export\\s+default\\s+${name}\\s*;\\s*$`).test(trimmedLine)
       )) ||
       // Skip declaration lines for this symbol
       trimmedLine.includes(`function ${name}`) ||
@@ -178,7 +180,27 @@ export function countActualUsage(content: string, name: string): number {
       }
     }
     
-    // 3. If no specific patterns found, use general word boundary search on clean line
+    // 3. JSX usage patterns
+    if (!usageFound) {
+      const jsxUsagePatterns = [
+        `\\{\\s*${name}\\s*\\}`,           // {variableName}
+        `\\{\\s*\\.\\.\\.${name}\\s*\\}`,  // {...variableName}
+        `\\w+\\s*=\\s*\\{\\s*${name}\\s*\\}`, // prop={variableName}
+        `ref\\s*=\\s*\\{\\s*${name}\\s*\\}`, // ref={variableName}
+        `\\w+\\s*=\\s*${name}\\b`,        // prop=variableName (without braces)
+      ];
+      
+      for (const pattern of jsxUsagePatterns) {
+        const regex = new RegExp(pattern, 'g');
+        if (cleanLine.match(regex)) {
+          usageCount++;
+          usageFound = true;
+          break; // Found one JSX usage pattern, that's enough for this line
+        }
+      }
+    }
+    
+    // 4. If no specific patterns found, use general word boundary search on clean line
     if (!usageFound) {
       const regex = new RegExp(`\\b${name}\\b`, 'g');
       const matches = cleanLine.match(regex) || [];
