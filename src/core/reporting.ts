@@ -1,6 +1,6 @@
 import chalk from 'chalk';
-import { IDeadCodeInfo, IDeadCodeReport } from '../interfaces';
-import { isDeadCode } from './analysis';
+import { IDeadCodeInfo, IDeadCodeReport, IImportedSymbol } from '../interfaces';
+import { isDeadCode, isExternalPackage } from './analysis';
 
 /**
  * Creates a report from the dead code map
@@ -8,7 +8,7 @@ import { isDeadCode } from './analysis';
 export function createReport(
   deadMap: Record<string, IDeadCodeInfo>,
   exportedSymbols: Set<string>,
-  importedSymbols: Map<string, string[]>
+  importedSymbols: Map<string, IImportedSymbol[]>
 ): IDeadCodeReport[] {
   const reportList: IDeadCodeReport[] = [];
 
@@ -28,15 +28,38 @@ export function createReport(
   }
 
   // Second pass: detect imported symbols that don't exist in declarations
-  for (const [importedSymbol, files] of importedSymbols) {
+  for (const [importedSymbol, importInfos] of importedSymbols) {
     // Skip if we already processed this symbol
     if (deadMap[importedSymbol]) continue;
 
-    // If it's imported but not in our declarations, it's likely a dead import
-    // Add an entry for each file where this symbol was imported
-    for (const filePath of files) {
+    // Check if all imports are from external packages
+    const allFromExternalPackages = importInfos.every(importInfo => 
+      isExternalPackage(importInfo.importSource)
+    );
+
+    // For external packages, check if they are used after import
+    if (allFromExternalPackages) {
+      // Check if any import is not used after import
+      const hasUnusedImports = importInfos.some(info => !info.usedAfterImport);
+      
+      if (hasUnusedImports) {
+        for (const importInfo of importInfos) {
+          if (!importInfo.usedAfterImport) {
+            reportList.push({
+              filePath: importInfo.filePath,
+              line: 0,
+              name: `${importedSymbol} (imported but not used)`
+            });
+          }
+        }
+      }
+      continue;
+    }
+
+    // For local imports that are not found, report as before
+    for (const importInfo of importInfos) {
       reportList.push({
-        filePath,
+        filePath: importInfo.filePath,
         line: 0, // We don't have exact line information
         name: `${importedSymbol} (imported but not found)`
       });

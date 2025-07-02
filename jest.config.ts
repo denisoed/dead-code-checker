@@ -25,7 +25,13 @@ const config: Config = {
   // collectCoverageFrom: undefined,
 
   // The directory where Jest should output its coverage files
-  coverageDirectory: 'coverage'
+  coverageDirectory: 'coverage',
+
+  // Preset that is used as a base for Jest's configuration
+  preset: 'ts-jest',
+
+  // The test environment that will be used for testing
+  testEnvironment: 'node'
 
   // An array of regexp pattern strings used to skip coverage collection
   // coveragePathIgnorePatterns: [
@@ -101,9 +107,6 @@ const config: Config = {
   // An enum that specifies notification mode. Requires { notify: true }
   // notifyMode: "failure-change",
 
-  // A preset that is used as a base for Jest's configuration
-  // preset: undefined,
-
   // Run tests from one or more projects
   // projects: undefined,
 
@@ -144,9 +147,6 @@ const config: Config = {
 
   // A list of paths to snapshot serializer modules Jest should use for snapshot testing
   // snapshotSerializers: [],
-
-  // The test environment that will be used for testing
-  // testEnvironment: "jest-environment-node",
 
   // Options that will be passed to the testEnvironment
   // testEnvironmentOptions: {},

@@ -14,6 +14,12 @@ export interface IDeadCodeInfo {
   }[];
 }
 
+export interface IImportedSymbol {
+  filePath: string;
+  importSource: string;
+  usedAfterImport?: boolean;
+}
+
 export interface IDeadCodeReport {
   name: string;
   line: number;

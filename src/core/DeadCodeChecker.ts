@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import cfonts from 'cfonts';
 import { START_TEXT } from '../config';
-import { IDeadCodeInfo, IDeadCodeParams, IDeadCodeReport } from '../interfaces';
+import { IDeadCodeInfo, IDeadCodeParams, IDeadCodeReport, IImportedSymbol } from '../interfaces';
 import { getAllFiles, readFileContent } from './fileSystem';
 import {
   findDeclarations,
@@ -22,7 +22,7 @@ class DeadCodeChecker {
   private deadCodeFound: boolean = false;
   private reportList: IDeadCodeReport[] = [];
   private exportedSymbols: Set<string> = new Set();
-  private importedSymbols: Map<string, string[]> = new Map();
+  private importedSymbols: Map<string, IImportedSymbol[]> = new Map();
 
   constructor(filesPath: string, params?: IDeadCodeParams) {
     this.params = params;

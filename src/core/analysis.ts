@@ -1,14 +1,58 @@
 import { REGEX } from '../config';
-import { IDeadCodeInfo } from '../interfaces';
+import { IDeadCodeInfo, IImportedSymbol } from '../interfaces';
 import { removeComments } from './fileSystem';
+
+/**
+ * Determines if an import source is an external package
+ * External packages are npm modules that don't use relative paths
+ */
+export function isExternalPackage(importSource: string): boolean {
+  // External packages don't start with relative paths (. or ..)
+  // and don't start with absolute paths (/) 
+  // and are not path aliases (starting with @/)
+  return !importSource.startsWith('.') && 
+         !importSource.startsWith('/') && 
+         !importSource.startsWith('@/');
+}
 
 /**
  * Counts the occurrences of a name in the content
  */
 export function countUsages(cleanedContent: string, name: string): number {
-  const usageRegex = new RegExp(`\\b${name}\\b`, 'g');
-  const matches = cleanedContent.match(usageRegex);
-  return matches ? matches.length : 0;
+  const regex = new RegExp(`\\b${name}\\b`, 'g');
+  return (cleanedContent.match(regex) || []).length;
+}
+
+/**
+ * Counts actual usage of a symbol excluding declarations, imports, and exports
+ */
+export function countActualUsage(content: string, name: string): number {
+  const lines = content.split('\n');
+  let usageCount = 0;
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // Skip lines that are declarations, imports, or exports
+    if (
+      trimmedLine.startsWith('import ') ||
+      trimmedLine.startsWith('export ') ||
+      trimmedLine.includes(`function ${name}`) ||
+      trimmedLine.includes(`class ${name}`) ||
+      trimmedLine.includes(`const ${name}`) ||
+      trimmedLine.includes(`let ${name}`) ||
+      trimmedLine.includes(`var ${name}`)
+    ) {
+      continue;
+    }
+    
+    // Count occurrences in this line
+    const regex = new RegExp(`\\b${name}\\b`, 'g');
+    const matches = line.match(regex) || [];
+    usageCount += matches.length;
+  }
+  
+  return usageCount;
 }
 
 /**
@@ -55,11 +99,8 @@ export function analyzeSymbolUsage(
     importCount = (content.match(importRegex) || []).length;
   }
 
-  // Calculate actual usage
-  const usageCount = Math.max(
-    0,
-    totalCount - declarationCount - exportCount - importCount
-  );
+  // Use more accurate usage counting that excludes declaration/import/export lines
+  const usageCount = countActualUsage(content, name);
 
   return {
     totalCount,
@@ -77,7 +118,7 @@ function initializeDeadCodeStructure(
   collectedNames: string[],
   deadMap: Record<string, IDeadCodeInfo>,
   exportedSymbols: Set<string>,
-  importedSymbols: Map<string, string[]>
+  importedSymbols: Map<string, IImportedSymbol[]>
 ): void {
   collectedNames.forEach(name => {
     if (deadMap[name]) {
@@ -100,7 +141,7 @@ function populateExportImportInfo(
   collectedNames: string[],
   deadMap: Record<string, IDeadCodeInfo>,
   exportedSymbols: Set<string>,
-  importedSymbols: Map<string, string[]>
+  importedSymbols: Map<string, IImportedSymbol[]>
 ): void {
   collectedNames.forEach(name => {
     if (deadMap[name]) {
@@ -115,9 +156,9 @@ function populateExportImportInfo(
 
       // Imports
       if (importedSymbols.has(name)) {
-        importedSymbols.get(name)!.forEach(filePath => {
+        importedSymbols.get(name)!.forEach(importInfo => {
           deadMap[name].importedIn.push({
-            filePath,
+            filePath: importInfo.filePath,
             usedAfterImport: false // Default to false, meaning not used
           });
         });
@@ -214,7 +255,7 @@ export function analyzeUsages(
   files: Map<string, string>,
   deadMap: Record<string, IDeadCodeInfo>,
   exportedSymbols: Set<string>,
-  importedSymbols: Map<string, string[]>
+  importedSymbols: Map<string, IImportedSymbol[]>
 ): void {
   if (collectedNames.length === 0) {
     return;
@@ -239,15 +280,18 @@ export function analyzeUsages(
   // Track HTML files that have script imports
   const htmlFilesWithScripts = collectHtmlScriptDependencies(files);
 
-  // Analyze usage after import
+  // Analyze usage after import for all names (declared + imported)
+  const allNamesToAnalyze = new Set([
+    ...collectedNames,
+    ...Array.from(importedSymbols.keys())
+  ]);
+
   for (const [filePath, fileContent] of files.entries()) {
     const withoutComments = removeComments(fileContent);
 
-    collectedNames.forEach(name => {
-      if (!deadMap[name]) return;
-
+    allNamesToAnalyze.forEach(name => {
       // For HTML files, check both inline scripts and imported scripts
-      if (filePath.endsWith('.html')) {
+      if (filePath.endsWith('.html') && deadMap[name]) {
         const scriptSrcs = htmlFilesWithScripts.get(filePath) || new Set();
         analyzeHtmlFileUsage(fileContent, name, deadMap, scriptSrcs);
       }
@@ -256,7 +300,7 @@ export function analyzeUsages(
       const isExported = exportedSymbols.has(name);
       const isImported =
         importedSymbols.has(name) &&
-        importedSymbols.get(name)!.includes(filePath);
+        importedSymbols.get(name)!.some(importInfo => importInfo.filePath === filePath);
 
       const usageInfo = analyzeSymbolUsage(
         withoutComments,
@@ -266,8 +310,33 @@ export function analyzeUsages(
       );
 
       // Update information about usage after import
-      updateUsageAfterImport(filePath, name, deadMap, usageInfo);
+      if (deadMap[name]) {
+        updateUsageAfterImport(filePath, name, deadMap, usageInfo);
+      } else if (importedSymbols.has(name)) {
+        // Update usage information for imported symbols not in deadMap
+        updateImportedSymbolUsage(filePath, name, importedSymbols, usageInfo);
+      }
     });
+  }
+}
+
+/**
+ * Updates usage information for imported symbols that are not in deadMap
+ */
+function updateImportedSymbolUsage(
+  filePath: string,
+  name: string,
+  importedSymbols: Map<string, IImportedSymbol[]>,
+  usageInfo: UsageContext
+): void {
+  if (!importedSymbols.has(name)) return;
+
+  const importInfos = importedSymbols.get(name)!;
+  const importIndex = importInfos.findIndex(info => info.filePath === filePath);
+
+  if (importIndex !== -1 && usageInfo.usageCount > 0) {
+    // Mark as used after import
+    importInfos[importIndex].usedAfterImport = true;
   }
 }
 
@@ -278,10 +347,23 @@ export function isDeadCode(
   name: string,
   occurrences: IDeadCodeInfo,
   exportedSymbols: Set<string>,
-  importedSymbols: Map<string, string[]>
+  importedSymbols: Map<string, IImportedSymbol[]>
 ): boolean {
-  // Case 1: Imported but not exported — always dead/incorrect
+  // Case 1: Imported but not exported — check if it's an external package
   if (importedSymbols.has(name) && !exportedSymbols.has(name)) {
+    const importInfos = importedSymbols.get(name)!;
+    // If ALL imports are from external packages, don't consider it dead code
+    const allFromExternalPackages = importInfos.every(importInfo => 
+      isExternalPackage(importInfo.importSource)
+    );
+    
+    if (allFromExternalPackages) {
+      // For external packages, only consider dead if not used after import
+      return occurrences.importedIn.length > 0 && 
+             occurrences.importedIn.every(item => !item.usedAfterImport);
+    }
+    
+    // For local imports, it's dead if not found
     return true;
   }
 
