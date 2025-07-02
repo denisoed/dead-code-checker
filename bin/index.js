@@ -30,6 +30,8 @@ program
     'Function or variable names to be ignored'
   )
   .option('-if, --ignoreFolders <folders...>', 'Folders to be ignored')
+  .option('-q, --quiet', 'Suppress all output except errors')
+  .option('--no-progress', 'Disable progress bar display')
   .parse(process.argv);
 
 const options = program.opts();
@@ -42,7 +44,9 @@ if (!Object.keys(options).length) {
   const checker = new DeadCodeChecker(options.folder || './src', {
     ci: options.ci,
     ignoreFolders: options.ignoreFolders || [],
-    ignoreNames: options.ignoreNames || []
+    ignoreNames: options.ignoreNames || [],
+    quiet: options.quiet,
+    noProgress: options.noProgress
   });
   checker.run();
 }

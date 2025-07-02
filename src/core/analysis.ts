@@ -380,7 +380,8 @@ export function analyzeUsages(
   files: Map<string, string>,
   deadMap: Record<string, IDeadCodeInfo>,
   exportedSymbols: Set<string>,
-  importedSymbols: Map<string, IImportedSymbol[]>
+  importedSymbols: Map<string, IImportedSymbol[]>,
+  onFileProcessed?: (filePath: string) => void
 ): void {
   if (collectedNames.length === 0) {
     return;
@@ -444,6 +445,11 @@ export function analyzeUsages(
         updateImportedSymbolUsage(filePath, name, importedSymbols, usageInfo);
       }
     });
+
+    // Call progress callback for each processed file
+    if (onFileProcessed) {
+      onFileProcessed(filePath);
+    }
   }
 }
 

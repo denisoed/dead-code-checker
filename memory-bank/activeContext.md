@@ -2,7 +2,9 @@
 
 ## Current Focus
 
-**COMPLETED**: Major enhancement of both the reporting format AND the analysis algorithm accuracy. Successfully resolved false positives while maintaining high precision in dead code detection. The tool now provides professional-grade output with dramatically improved accuracy.
+**COMPLETED**: Enhanced progress bar functionality with dynamic file tracking. Users can now see exactly which file is being processed in real-time, making the analysis much more engaging and informative for large projects.
+
+**PREVIOUS**: Major enhancement of both the reporting format AND the analysis algorithm accuracy. Successfully resolved false positives while maintaining high precision in dead code detection. The tool now provides professional-grade output with dramatically improved accuracy.
 
 ## Current State
 
@@ -21,7 +23,16 @@
 
 ## Recent Changes
 
-- **MAJOR ALGORITHM IMPROVEMENTS**: Enhanced usage detection with multiple pattern recognition
+- **NEW FEATURE**: Enhanced Progress Bar with Dynamic File Tracking (Version 1.1.0)
+  - Added real-time progress tracking for all analysis stages
+  - **DYNAMIC**: Shows current file being processed (📄 src/components/Button.tsx)
+  - Visual indicators: 📁 Collecting files, 📖 Reading files, 🔍 Processing declarations, ⚡ Analyzing usage
+  - Smart path formatting: shows relative paths from src/ directory
+  - Automatic detection of TTY support with graceful fallback
+  - New CLI options: `--quiet`, `--no-progress`
+  - CI mode automatically disables progress bars
+  - Minimal performance impact with smart progress updates
+- **PREVIOUS MAJOR ALGORITHM IMPROVEMENTS**: Enhanced usage detection with multiple pattern recognition
   - Added constructor pattern detection (`new ClassName()`)
   - Added TypeScript type usage patterns (`: TypeName`, `TypeName[]`, etc.)
   - Improved fallback to general pattern matching for comprehensive coverage
@@ -88,3 +99,35 @@
 - **ACHIEVED**: Proper handling of exported components and local imports
 - Comprehensive pattern detection for modern JavaScript/TypeScript code
 - User-friendly visual presentation with actionable insights
+
+## Current Work Status
+**COMPLETED**: Progress bar implementation with real-time updates
+
+## Recent Accomplishments
+- ✅ **Fixed progress bar blocking issue**
+  - Made `scanAndCheckFiles()` asynchronous with `Promise<Map<string, string>>`
+  - Added `setImmediate()` calls every 10 files to allow event loop processing
+  - Enhanced `ProgressTracker` with forced stdout flushing
+  - Improved cli-progress configuration with `forceRedraw: true` and `fps: 10`
+  - Created `analyzeUsagesAsync()` method for batched file analysis
+
+- ✅ **Progress bar now works correctly**:
+  - Shows progress immediately after command start
+  - Real-time updates during file processing
+  - Displays current file being processed (📄 filename)
+  - All 4 stages work: Collecting → Reading → Processing → Analyzing
+  - Tested successfully on large projects (1500+ files)
+
+## Technical Implementation Details
+- **Files Modified**:
+  - `src/core/progress.ts`: Enhanced with stdout flushing and better cli-progress config
+  - `src/core/DeadCodeChecker.ts`: Made async with batched processing
+  - Added micro-pauses between file batches using `setImmediate()`
+
+## Current Branch
+- `progress-bar` - ready for merge
+- All TypeScript compilation issues resolved
+
+## Next Steps
+- Monitor user feedback on progress bar performance
+- Consider further optimizations if needed on very large projects

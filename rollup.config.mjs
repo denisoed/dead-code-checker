@@ -14,7 +14,8 @@ const globals = {
   fs: 'fs',
   path: 'path',
   colors: 'colors',
-  cfonts: 'cfonts'
+  cfonts: 'cfonts',
+  'cli-progress': 'cliProgress'
 };
 
 const plugins = [
