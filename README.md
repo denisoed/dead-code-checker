@@ -38,6 +38,13 @@ npx dead-code-checker -f ./src
  ████████████████████████  | 90% | 1,122/1,247 | ⚡ Analyzing usage 📄 src/hooks/useData.ts
 ```
 
+**Progress Bar Explained:**
+- **█████████** - Visual progress bar
+- **85%** - Completion percentage  
+- **1,058/1,247** - Current/Total files processed
+- **📖 Reading files** - Current stage (Collecting → Reading → Processing → Analyzing)
+- **📄 filename.tsx** - Currently processing file
+
 🎯 **Instant Results:**
 - Find all unused functions and variables
 - Get exact file locations and line numbers  
