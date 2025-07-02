@@ -120,10 +120,19 @@ export function countActualUsage(content: string, name: string): number {
   for (const line of lines) {
     const trimmedLine = line.trim();
     
-    // Skip lines that are declarations, imports, or exports
+    // Skip lines that declare, import, or export THIS SPECIFIC symbol
     if (
-      trimmedLine.startsWith('import ') ||
-      trimmedLine.startsWith('export ') ||
+      // Skip import lines that contain this symbol
+      (trimmedLine.startsWith('import ') && trimmedLine.includes(name)) ||
+      // Skip export lines only if they are exporting THIS symbol
+      (trimmedLine.startsWith('export ') && (
+        trimmedLine.includes(`export ${name}`) || 
+        trimmedLine.includes(`export { ${name}`) ||
+        trimmedLine.includes(`export {${name}`) ||
+        trimmedLine.includes(`export * as ${name}`) ||
+        trimmedLine.includes(`export default ${name}`)
+      )) ||
+      // Skip declaration lines for this symbol
       trimmedLine.includes(`function ${name}`) ||
       trimmedLine.includes(`class ${name}`) ||
       trimmedLine.includes(`const ${name}`) ||

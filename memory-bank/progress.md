@@ -12,6 +12,7 @@
 - ✅ **MAJOR**: Enhanced import analysis that distinguishes external packages from local modules
 - ✅ **CRITICAL**: Fixed false negative bug in external package unused import detection
 - ✅ **BREAKTHROUGH**: Achieved 100% accuracy with sophisticated pattern detection for modern JavaScript/TypeScript
+- ✅ **CRITICAL BUG FIX**: Fixed false positive detection in countActualUsage function for export statements
 
 ### Algorithm Accuracy Improvements
 
@@ -21,6 +22,7 @@
 - ✅ **LOCAL IMPORTS**: Better handling of imports from files outside scan scope
 - ✅ **PATTERN FALLBACK**: Intelligent fallback from specific to general pattern matching
 - ✅ **FALSE POSITIVE ELIMINATION**: Reduced false positives from 31% to 0%
+- ✅ **EXPORT LINE ANALYSIS**: Fixed bug where symbols used in export declarations were marked as unused
 
 ### User Interfaces
 

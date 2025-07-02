@@ -2,9 +2,9 @@
 
 ## Current Focus
 
-**COMPLETED**: Enhanced progress bar functionality with dynamic file tracking. Users can now see exactly which file is being processed in real-time, making the analysis much more engaging and informative for large projects.
+**COMPLETED**: CRITICAL BUG FIX - Fixed false positive detection in export lines analysis. Dead Code Checker was incorrectly marking imported symbols as unused when they were used inside export declarations (e.g., `export const Context = createContext({})`). Fixed countActualUsage function to only skip lines that declare/import/export the specific symbol being analyzed, rather than skipping ALL lines with export statements.
 
-**PREVIOUS**: Major enhancement of both the reporting format AND the analysis algorithm accuracy. Successfully resolved false positives while maintaining high precision in dead code detection. The tool now provides professional-grade output with dramatically improved accuracy.
+**PREVIOUS**: Enhanced progress bar functionality with dynamic file tracking. Users can now see exactly which file is being processed in real-time, making the analysis much more engaging and informative for large projects.
 
 ## Current State
 
