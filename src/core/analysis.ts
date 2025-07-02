@@ -437,8 +437,10 @@ export function analyzeUsages(
       // Update information about usage after import
       if (deadMap[name]) {
         updateUsageAfterImport(filePath, name, deadMap, usageInfo);
-      } else if (importedSymbols.has(name)) {
-        // Update usage information for imported symbols not in deadMap
+      }
+      
+      // Also update importedSymbols if this symbol is imported in this file
+      if (importedSymbols.has(name)) {
         updateImportedSymbolUsage(filePath, name, importedSymbols, usageInfo);
       }
     });
