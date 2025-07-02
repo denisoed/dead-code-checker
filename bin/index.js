@@ -19,12 +19,15 @@ import DeadCodeChecker from '../dist/index.mjs';
 const program = new Command();
 
 program
+  .name('dead-code-checker')
+  .description('CLI tool for finding unused code in JavaScript/TypeScript projects')
+  .argument('[path]', 'Path to folder to be scanned', './src')
   .option(
     '-v, --version',
     'Display Application Version: Displays the current version of the application.'
   )
   .option('--ci', 'Abort the process when dead code is detected.')
-  .option('-f, --folder <folder>', 'Folder to be scanned (Default: ./src)')
+  .option('-f, --folder <folder>', 'Folder to be scanned (overrides positional argument)')
   .option(
     '-in, --ignoreNames <names...>',
     'Function or variable names to be ignored'
@@ -35,13 +38,17 @@ program
   .parse(process.argv);
 
 const options = program.opts();
+const args = program.args;
 
-if (!Object.keys(options).length) {
+if (!Object.keys(options).length && args.length === 0) {
   program.outputHelp();
 } else if (options.version) {
   console.log(packageJson.version);
 } else {
-  const checker = new DeadCodeChecker(options.folder || './src', {
+  // Priority: explicit --folder flag > positional argument > default
+  const targetPath = options.folder || args[0] || './src';
+  
+  const checker = new DeadCodeChecker(targetPath, {
     ci: options.ci,
     ignoreFolders: options.ignoreFolders || [],
     ignoreNames: options.ignoreNames || [],

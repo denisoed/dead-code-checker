@@ -69,7 +69,23 @@
 
 ### Recent Major Breakthroughs
 
-- ✅ **ALGORITHM ACCURACY BREAKTHROUGH**: Achieved 100% accuracy on test cases
+- ✅ **CRITICAL CLI BUG FIX**: Fixed CLI argument processing for positional arguments (Latest)
+  - **Problem**: CLI ignored positional arguments and always analyzed `./src` instead of specified path
+  - **Root Cause**: Commander.js was not configured to handle positional arguments
+  - **Solution**: Added proper argument definition and priority logic (folder flag > positional arg > default)
+  - **Result**: Users can now correctly specify target directories multiple ways
+  - **Files**: `bin/index.js` enhanced with argument processing logic
+- ✅ **SENDGAEVENT INVESTIGATION**: Confirmed algorithm accuracy for internal function usage (Latest)
+  - **Problem**: User reported `sendGAEvent` being incorrectly marked as dead code
+  - **Investigation**: CLI bug was causing wrong directory analysis, not algorithm issues
+  - **Validation**: Created test cases proving `sendGAEvent` correctly identified as used
+  - **Result**: Algorithm properly detects internal function calls within same file
+- ✅ **PREVIOUS**: CRITICAL EXPORT DEFAULT FIX - Fixed false positive in export default usage detection
+  - **Problem**: Functions incorrectly marked as unused when used in `export default functionName(...)`
+  - **Root Cause**: Logic `trimmedLine.includes(\`export default ${name}\`)` was too broad
+  - **Solution**: Precise regex patterns for exact export matching vs. usage detection
+  - **Result**: Functions used within export default statements now correctly identified as used
+- ✅ **ALGORITHM ACCURACY BREAKTHROUGH**: Achieved 100% accuracy on test cases (Previous)
   - **Problem**: False positives for constructors, TypeScript types, and local imports
   - **Solution**: Multi-layered pattern detection with intelligent fallback
   - **Patterns**: Constructor usage, TypeScript type annotations, general usage patterns
