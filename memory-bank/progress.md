@@ -69,7 +69,13 @@
 
 ### Recent Major Breakthroughs
 
-- ✅ **CRITICAL CLI BUG FIX**: Fixed CLI argument processing for positional arguments (Latest)
+- ✅ **SINGLE FILE ANALYSIS SUPPORT**: Added support for analyzing individual files (Latest)
+  - **Problem**: Analyzer only worked with directories, silently failed on files
+  - **Root Cause**: `getAllFiles` function designed only for directory traversal
+  - **Solution**: Enhanced function to detect and handle both files and directories
+  - **Result**: Full support for individual file analysis alongside directory analysis
+  - **Files**: `src/core/fileSystem.ts` enhanced with file detection logic
+- ✅ **CRITICAL CLI BUG FIX**: Fixed CLI argument processing for positional arguments (Previous)
   - **Problem**: CLI ignored positional arguments and always analyzed `./src` instead of specified path
   - **Root Cause**: Commander.js was not configured to handle positional arguments
   - **Solution**: Added proper argument definition and priority logic (folder flag > positional arg > default)

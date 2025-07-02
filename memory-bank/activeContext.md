@@ -2,6 +2,8 @@
 
 ## Current Focus
 
+**SINGLE FILE ANALYSIS SUPPORT COMPLETED**: Fixed critical limitation where CLI could only analyze directories, not individual files. Enhanced `getAllFiles` function to detect and process single files directly, enabling users to analyze specific files: `dead-code-checker ./path/to/file.js`.
+
 **CRITICAL CLI BUG FIX COMPLETED**: Fixed CLI argument processing bug where positional arguments were ignored. The CLI now properly handles both positional arguments and the -f/--folder flag, allowing users to specify target directories in multiple ways: `dead-code-checker ./path/to/analyze` or `dead-code-checker -f ./path/to/analyze`.
 
 **SENDGAEVENT ANALYSIS CONFIRMED**: The `sendGAEvent` function was never incorrectly identified as dead code. The confusion arose from CLI issues that caused the analyzer to scan wrong directories. When properly analyzed, `sendGAEvent` is correctly identified as used within its file, demonstrating the accuracy of the internal usage detection algorithm.
@@ -34,7 +36,14 @@
 
 ## Recent Changes
 
-- **CRITICAL CLI FIX**: Fixed CLI argument processing to support positional arguments (Latest)
+- **SINGLE FILE ANALYSIS FIX**: Added support for analyzing individual files (Latest)
+  - **PROBLEM IDENTIFIED**: CLI only worked with directories, failed silently on individual files
+  - **ROOT CAUSE**: `getAllFiles` function used `fs.readdirSync()` which only works with directories
+  - **SOLUTION**: Enhanced `getAllFiles` to detect file vs directory and handle both cases
+  - **IMPACT**: Users can now analyze specific files: `dead-code-checker example/file.js`
+  - **TESTING**: Verified on multiple file types (.js, .tsx, .ts) with correct dead code detection
+  - **FILES MODIFIED**: `src/core/fileSystem.ts` - enhanced getAllFiles function
+- **CRITICAL CLI FIX**: Fixed CLI argument processing to support positional arguments (Previous)
   - **PROBLEM IDENTIFIED**: CLI ignored positional arguments and always defaulted to `./src`
   - **ROOT CAUSE**: Commander.js was not configured to handle positional arguments
   - **SOLUTION**: Added `.argument('[path]', 'Path to folder to be scanned', './src')` and updated logic

@@ -4,26 +4,43 @@ import { IGNORE_FOLDERS, DEFAULT_EXTENSIONS, REGEX } from '../config';
 import { IDeadCodeParams } from '../interfaces';
 
 /**
- * Gets all files in a directory recursively
+ * Gets all files in a directory recursively or returns single file if path points to a file
  */
 export function getAllFiles(
-  dirPath: string,
+  pathInput: string,
   arrayOfFiles: string[] = [],
   params?: IDeadCodeParams
 ): string[] {
   try {
-    const files = fs.readdirSync(dirPath);
-    files.forEach((file: string) => {
-      const fullPath: string = path.join(dirPath, file);
-      if (fs.statSync(fullPath).isDirectory()) {
-        if (!shouldIgnoreFolder(file, params)) {
-          arrayOfFiles = getAllFiles(fullPath, arrayOfFiles, params);
-        }
-      } else if (isValidFileExtension(file)) {
-        arrayOfFiles.push(fullPath);
+    const stats = fs.statSync(pathInput);
+    
+    // If path points to a single file
+    if (stats.isFile()) {
+      const fileName = path.basename(pathInput);
+      if (isValidFileExtension(fileName)) {
+        return [pathInput];
+      } else {
+        return [];
       }
-    });
-    return arrayOfFiles;
+    }
+    
+    // If path points to a directory
+    if (stats.isDirectory()) {
+      const files = fs.readdirSync(pathInput);
+      files.forEach((file: string) => {
+        const fullPath: string = path.join(pathInput, file);
+        if (fs.statSync(fullPath).isDirectory()) {
+          if (!shouldIgnoreFolder(file, params)) {
+            arrayOfFiles = getAllFiles(fullPath, arrayOfFiles, params);
+          }
+        } else if (isValidFileExtension(file)) {
+          arrayOfFiles.push(fullPath);
+        }
+      });
+      return arrayOfFiles;
+    }
+    
+    return [];
   } catch (error) {
     return [];
   }
