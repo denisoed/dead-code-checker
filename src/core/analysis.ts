@@ -24,6 +24,93 @@ export function countUsages(cleanedContent: string, name: string): number {
 }
 
 /**
+ * Removes string literals and comments from a line of code
+ * Preserves template literal interpolations (${...})
+ */
+function removeStringsAndComments(line: string): string {
+  let result = '';
+  let i = 0;
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let inTemplate = false;
+  let inComment = false;
+  let braceDepth = 0;
+  
+  while (i < line.length) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+    
+    // Handle single line comments
+    if (!inSingleQuote && !inDoubleQuote && !inTemplate && char === '/' && nextChar === '/') {
+      inComment = true;
+      i += 2;
+      continue;
+    }
+    
+    if (inComment) {
+      i++;
+      continue;
+    }
+    
+    // Handle string literals
+    if (!inDoubleQuote && !inTemplate && char === "'") {
+      inSingleQuote = !inSingleQuote;
+      i++;
+      continue;
+    }
+    
+    if (!inSingleQuote && !inTemplate && char === '"') {
+      inDoubleQuote = !inDoubleQuote;
+      i++;
+      continue;
+    }
+    
+    if (!inSingleQuote && !inDoubleQuote && char === '`') {
+      inTemplate = !inTemplate;
+      braceDepth = 0;
+      i++;
+      continue;
+    }
+    
+    // Handle template literal interpolations ${...}
+    if (inTemplate) {
+      if (char === '$' && nextChar === '{') {
+        braceDepth = 1;
+        result += ' '; // Add space to maintain word boundaries
+        i += 2;
+        continue;
+      }
+      
+      if (braceDepth > 0) {
+        if (char === '{') {
+          braceDepth++;
+        } else if (char === '}') {
+          braceDepth--;
+          if (braceDepth === 0) {
+            result += ' '; // Add space to maintain word boundaries
+            i++;
+            continue;
+          }
+        }
+        // Include characters inside ${...}
+        result += char;
+      }
+      i++;
+      continue;
+    }
+    
+    // If we're not inside any string, add the character
+    if (!inSingleQuote && !inDoubleQuote && !inTemplate) {
+      result += char;
+    }
+    
+    i++;
+  }
+  
+  return result;
+}
+
+/**
  * Counts actual usage of a symbol excluding declarations, imports, and exports
  */
 export function countActualUsage(content: string, name: string): number {
@@ -46,10 +133,48 @@ export function countActualUsage(content: string, name: string): number {
       continue;
     }
     
-    // Count occurrences in this line
-    const regex = new RegExp(`\\b${name}\\b`, 'g');
-    const matches = line.match(regex) || [];
-    usageCount += matches.length;
+    // Remove strings and comments before analyzing usage
+    const cleanLine = removeStringsAndComments(line);
+    
+    // Enhanced usage detection with fallback to general pattern
+    let usageFound = false;
+    
+    // 1. Constructor usage: new ClassName()
+    const constructorRegex = new RegExp(`\\bnew\\s+${name}\\s*\\(`, 'g');
+    if (cleanLine.match(constructorRegex)) {
+      usageCount++;
+      usageFound = true;
+    }
+    
+    // 2. TypeScript type usage patterns
+    const typeUsagePatterns = [
+      `:\\s*${name}\\b`,        // : TypeName
+      `<${name}>`,              // <TypeName>
+      `\\b${name}\\[\\]`,       // TypeName[]
+      `Array<${name}>`,         // Array<TypeName>
+      `\\b${name}\\s*\\|`,      // TypeName |
+      `\\|\\s*${name}\\b`,      // | TypeName
+      `\\b${name}\\s*&`,        // TypeName &
+      `&\\s*${name}\\b`,        // & TypeName
+      `extends\\s+${name}\\b`,  // extends TypeName
+      `implements\\s+${name}\\b` // implements TypeName
+    ];
+    
+    for (const pattern of typeUsagePatterns) {
+      const regex = new RegExp(pattern, 'g');
+      if (cleanLine.match(regex)) {
+        usageCount++;
+        usageFound = true;
+        break; // Found one type usage pattern, that's enough for this line
+      }
+    }
+    
+    // 3. If no specific patterns found, use general word boundary search on clean line
+    if (!usageFound) {
+      const regex = new RegExp(`\\b${name}\\b`, 'g');
+      const matches = cleanLine.match(regex) || [];
+      usageCount += matches.length;
+    }
   }
   
   return usageCount;
@@ -373,11 +498,17 @@ export function isDeadCode(
   }
 
   // Case 3: Declared, exported, but not imported and not used locally
+  // Exception: Don't mark as dead code if it's likely a component or module export
   if (
     occurrences.usageCount === 0 &&
     exportedSymbols.has(name) &&
     (!importedSymbols.has(name) || importedSymbols.get(name)!.length === 0)
   ) {
+    // Check if this might be a React component or other intended export
+    const isLikelyComponent = name.charAt(0) === name.charAt(0).toUpperCase(); // PascalCase
+    if (isLikelyComponent) {
+      return false; // Don't mark components as dead code if they are exported
+    }
     return true;
   }
 

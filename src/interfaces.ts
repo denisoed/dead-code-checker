@@ -24,10 +24,21 @@ export interface IDeadCodeReport {
   name: string;
   line: number;
   filePath: string;
+  declarationType: 'function' | 'variable' | 'import' | 'other';
 }
 
 export interface IDeadCodeParams {
   ci?: boolean;
   ignoreFolders?: string[];
   ignoreNames?: string[];
+}
+
+export interface IReportSummary {
+  totalCount: number;
+  filesAffected: number;
+  functionCount: number;
+  variableCount: number;
+  importCount: number;
+  otherCount: number;
+  fileGroups: Map<string, IDeadCodeReport[]>;
 }
