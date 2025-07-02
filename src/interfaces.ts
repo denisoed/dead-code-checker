@@ -31,6 +31,8 @@ export interface IDeadCodeParams {
   ci?: boolean;
   ignoreFolders?: string[];
   ignoreNames?: string[];
+  quiet?: boolean;
+  noProgress?: boolean;
 }
 
 export interface IReportSummary {

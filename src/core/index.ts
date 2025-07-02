@@ -45,3 +45,4 @@ export { createReport, displayReport } from './reporting';
 
 // Main class
 export { default as DeadCodeChecker } from './DeadCodeChecker';
+export { ProgressTracker } from './progress';

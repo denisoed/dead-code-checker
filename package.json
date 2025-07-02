@@ -1,6 +1,6 @@
 {
   "name": "dead-code-checker",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "Dead Code Checker is a tool for finding dead code in your JavaScript or TypeScript project. It helps to ensure a cleaner and more maintainable code base.",
   "license": "MIT",
   "repository": {
@@ -56,6 +56,7 @@
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-terser": "^0.4.4",
     "@types/chalk": "^2.2.4",
+    "@types/cli-progress": "^3.11.5",
     "@types/jest": "^29.5.12",
     "jest": "^29.7.0",
     "prettier": "^3.2.5",
@@ -68,7 +69,8 @@
   "dependencies": {
     "cfonts": "^3.2.0",
     "colors": "^1.4.0",
-    "commander": "^12.0.0"
+    "commander": "^12.0.0",
+    "cli-progress": "^3.12.0"
   },
   "publishConfig": {
     "access": "public"

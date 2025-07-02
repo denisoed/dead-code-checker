@@ -29,11 +29,28 @@ Every day, developers waste **2-3 hours** navigating through unused code that:
 npx dead-code-checker -f ./src
 ```
 
+**With Real-Time Progress Tracking:**
+```
+🔍 Analyzing codebase...
+ █████████████████████████ | 100% | 100/100 | 📁 Collecting files 
+ ███████████████████████   | 85% | 1,058/1,247 | 📖 Reading files 📄 src/components/Button.tsx
+ ████████████████          | 60% | 748/1,247 | 🔍 Processing declarations 📄 src/utils/helpers.js
+ ████████████████████████  | 90% | 1,122/1,247 | ⚡ Analyzing usage 📄 src/hooks/useData.ts
+```
+
+**Progress Bar Explained:**
+- **█████████** - Visual progress bar
+- **85%** - Completion percentage  
+- **1,058/1,247** - Current/Total files processed
+- **📖 Reading files** - Current stage (Collecting → Reading → Processing → Analyzing)
+- **📄 filename.tsx** - Currently processing file
+
 🎯 **Instant Results:**
 - Find all unused functions and variables
 - Get exact file locations and line numbers  
 - Remove dead code with confidence
 - Reduce bundle size immediately
+- **NEW**: Real-time progress tracking with current file display
 
 ## 🏆 Real Impact, Real Results
 
@@ -51,6 +68,7 @@ npx dead-code-checker -f ./src
 | **🎯 Framework Support** | React, Vue, Angular, Node.js | Setup instantly |
 | **⚙️ CI/CD Ready** | Prevent dead code in PRs | Review time -50% |
 | **📊 Detailed Reports** | Exact locations + line numbers | Debug time -70% |
+| **📊 Real-Time Progress** | Live tracking of current file analysis | Never wonder if it's stuck again |
 | **🧩 Zero Config** | Works out of the box | Setup: 30 seconds |
 
 ## 📱 Supports Everything You Build
@@ -98,6 +116,12 @@ dead-code-checker -f ./src -if "tests,__mocks__"
 
 # CI/CD mode (fails on dead code)
 dead-code-checker --ci -f ./src
+
+# Quiet mode (minimal output)
+dead-code-checker --quiet -f ./src
+
+# Disable progress bar
+dead-code-checker --no-progress -f ./src
 ```
 
 ## 🏢 Perfect for Professional Teams
@@ -159,6 +183,8 @@ console.log(`Found ${report.deadCode.length} issues`);
 | `-in, --ignoreNames` | Ignore specific names | `-in "debug,test"` |
 | `-if, --ignoreFolders` | Ignore folders | `-if "tests,mocks"` |
 | `--ci` | CI mode (exit code 1 if dead code found) | `--ci` |
+| `-q, --quiet` | Suppress all output except errors | `--quiet` |
+| `--no-progress` | Disable progress bar display | `--no-progress` |
 | `-h, --help` | Show all options | `-h` |
 | `-v, --version` | Show version | `-v` |
 
