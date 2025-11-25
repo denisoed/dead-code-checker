@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Inline Scripts</title>
+  </head>
+  <body>
+    <!-- Inline script with used code -->
+    <script>
+      // Used function
+      function usedFunction() {
+        return 'used';
+      }
+      
+      // Unused function - should be detected as dead code
+      function unusedFunction() {
+        return 'unused';
+      }
+      
+      // Used variable
+      const usedVar = 'used';
+      
+      // Unused variable - should be detected as dead code
+      const unusedVar = 'unused';
+      
+      // Use code
+      usedFunction();
+      console.log(usedVar);
+    </script>
+    
+    <!-- Another inline script -->
+    <script>
+      // Used in this script
+      const anotherUsed = 'used';
+      console.log(anotherUsed);
+      
+      // Unused in this script - should be detected as dead code
+      const anotherUnused = 'unused';
+    </script>
+  </body>
+</html>
+

@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+  <head>
+    <title>External Scripts</title>
+  </head>
+  <body>
+    <!-- External script reference - used -->
+    <script src="./es-module-named.js" type="module"></script>
+    
+    <!-- Another external script -->
+    <script src="./class-methods.js"></script>
+    
+    <!-- Inline script using external code -->
+    <script>
+      // Note: In real scenario, would import or use global variables
+      // from external scripts
+      
+      // Local code that might use external
+      function useExternal() {
+        // Would use code from external scripts here
+        return 'using external';
+      }
+      
+      // Unused local function - should be detected as dead code
+      function unusedLocal() {
+        return 'unused';
+      }
+      
+      useExternal();
+    </script>
+    
+    <!-- Module script -->
+    <script type="module">
+      // ES module code
+      import { usedFunction } from './es-module-named.js';
+      
+      // Use imported function
+      usedFunction();
+      
+      // Unused import - should be detected as dead code
+      import { unusedFunction } from './es-module-named.js';
+      // unusedFunction(); // commented out
+    </script>
+  </body>
+</html>
+

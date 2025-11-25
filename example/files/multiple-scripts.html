@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Multiple Scripts</title>
+  </head>
+  <body>
+    <!-- External script - used -->
+    <script src="1.js"></script>
+    
+    <!-- Another external script -->
+    <script src="2.js"></script>
+    
+    <!-- Inline script using external scripts -->
+    <script>
+      // Used: obj from 1.js
+      console.log(obj);
+      
+      // Used: test1 from 2.js
+      test1();
+      
+      // Unused: test2 from 2.js - should be detected as dead code
+      // test2(); // commented out
+    </script>
+    
+    <!-- Another inline script -->
+    <script>
+      // Local function - used
+      function localUsed() {
+        return 'used';
+      }
+      
+      // Local function - unused - should be detected as dead code
+      function localUnused() {
+        return 'unused';
+      }
+      
+      localUsed();
+    </script>
+  </body>
+</html>
+
