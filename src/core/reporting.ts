@@ -222,13 +222,13 @@ export function displayReport(reportList: IDeadCodeReport[]): void {
 
   // Statistics section
   console.log(chalk.bold.magenta('📈 Statistics:'));
-  console.log(chalk.white(`  • Functions: ${chalk.yellow(summary.functionCount)} unused`));
-  console.log(chalk.white(`  • Variables: ${chalk.yellow(summary.variableCount)} unused`));
-  console.log(chalk.white(`  • External imports: ${chalk.yellow(summary.importCount)} unused`));
+  console.log(chalk.white(`  • Functions: ${chalk.yellow(`${summary.functionCount}`)} unused`));
+  console.log(chalk.white(`  • Variables: ${chalk.yellow(`${summary.variableCount}`)} unused`));
+  console.log(chalk.white(`  • External imports: ${chalk.yellow(`${summary.importCount}`)} unused`));
   if (summary.otherCount > 0) {
-    console.log(chalk.white(`  • Other: ${chalk.yellow(summary.otherCount)} unused`));
+    console.log(chalk.white(`  • Other: ${chalk.yellow(`${summary.otherCount}`)} unused`));
   }
-  console.log(chalk.white(`  • Files affected: ${chalk.yellow(summary.filesAffected)}`));
+  console.log(chalk.white(`  • Files affected: ${chalk.yellow(`${summary.filesAffected}`)}`));
   console.log(chalk.white(`  • Estimated lines saved: ${chalk.green('~' + (summary.totalCount * 8))}\n`));
 
   // Detailed results section
@@ -252,7 +252,7 @@ export function displayReport(reportList: IDeadCodeReport[]): void {
       .forEach(report => {
         const typeEmoji = getTypeEmoji(report.declarationType);
         const typeLabel = getTypeLabel(report.declarationType);
-        const lineInfo = report.line > 0 ? `:${chalk.yellow(report.line)}` : '';
+        const lineInfo = report.line > 0 ? `:${chalk.yellow(`${report.line}`)}` : '';
         
         console.log(chalk.white(
           `  ${typeEmoji} ${chalk.gray(typeLabel)} ${chalk.green(report.name)}${lineInfo}`
