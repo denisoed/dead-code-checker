@@ -18,6 +18,8 @@ export interface IImportedSymbol {
   filePath: string;
   importSource: string;
   usedAfterImport?: boolean;
+  /** Local binding name when the import uses an alias, e.g. `import { a as b }` → localName = 'b' */
+  localName?: string;
 }
 
 export interface IDeadCodeReport {

@@ -236,58 +236,105 @@ export function analyzeSymbolUsage(
   };
 }
 
+/** Separator used to form file-scoped deadMap keys: `filePath::symbolName` */
+const KEY_SEPARATOR = '::';
+
 /**
- * Initializes structure with zero counters for tracking dead code
+ * Extracts the symbol name from a file-scoped key (`filePath::name` → `name`).
+ * Returns the key as-is when it has no separator (plain name from importedSymbols).
  */
-function initializeDeadCodeStructure(
-  collectedNames: string[],
+export function extractNameFromKey(key: string): string {
+  const idx = key.indexOf(KEY_SEPARATOR);
+  return idx >= 0 ? key.slice(idx + KEY_SEPARATOR.length) : key;
+}
+
+
+/**
+ * Initializes structure with zero counters for tracking dead code.
+ * Must be called exactly once per analysis run, before analyzeUsagesBatch.
+ */
+export function initializeDeadCodeStructure(
+  collectedKeys: string[],
   deadMap: Record<string, IDeadCodeInfo>,
   exportedSymbols: Set<string>,
   importedSymbols: Map<string, IImportedSymbol[]>
 ): void {
-  collectedNames.forEach(name => {
-    if (deadMap[name]) {
-      deadMap[name].declarationCount = deadMap[name].declaredIn.length;
-      deadMap[name].exportCount = exportedSymbols.has(name) ? 1 : 0;
-      deadMap[name].importCount = importedSymbols.has(name)
+  collectedKeys.forEach(key => {
+    const name = extractNameFromKey(key);
+    if (deadMap[key]) {
+      deadMap[key].declarationCount = deadMap[key].declaredIn.length;
+      deadMap[key].exportCount = exportedSymbols.has(name) ? 1 : 0;
+      deadMap[key].importCount = importedSymbols.has(name)
         ? importedSymbols.get(name)!.length
         : 0;
-      deadMap[name].usageCount = 0;
-      deadMap[name].exportedFrom = [];
-      deadMap[name].importedIn = [];
+      deadMap[key].usageCount = 0;
+      deadMap[key].exportedFrom = [];
+      deadMap[key].importedIn = [];
     }
   });
 }
 
 /**
- * Populates information about exports and imports
+ * Populates exportedFrom and importedIn for each file-scoped deadMap entry.
+ * Import attribution uses basename matching: imports whose source resolves to the
+ * same basename as the declaring file are attributed to that declaration.
+ * When there is only one declaration for a name, all imports are attributed to it.
  */
-function populateExportImportInfo(
-  collectedNames: string[],
+export function populateExportImportInfo(
+  collectedKeys: string[],
   deadMap: Record<string, IDeadCodeInfo>,
   exportedSymbols: Set<string>,
   importedSymbols: Map<string, IImportedSymbol[]>
 ): void {
-  collectedNames.forEach(name => {
-    if (deadMap[name]) {
-      // Exports
-      if (exportedSymbols.has(name)) {
-        deadMap[name].declaredIn.forEach(decl => {
-          if (!deadMap[name].exportedFrom.includes(decl.filePath)) {
-            deadMap[name].exportedFrom.push(decl.filePath);
-          }
-        });
-      }
+  // Build name → [keys] map to detect how many files declare each name
+  const nameToKeys = new Map<string, string[]>();
+  collectedKeys.forEach(key => {
+    const name = extractNameFromKey(key);
+    if (!nameToKeys.has(name)) nameToKeys.set(name, []);
+    nameToKeys.get(name)!.push(key);
+  });
 
-      // Imports
-      if (importedSymbols.has(name)) {
-        importedSymbols.get(name)!.forEach(importInfo => {
-          deadMap[name].importedIn.push({
-            filePath: importInfo.filePath,
-            usedAfterImport: false // Default to false, meaning not used
-          });
-        });
+  collectedKeys.forEach(key => {
+    const name = extractNameFromKey(key);
+    if (!deadMap[key]) return;
+
+    const declaringFile = deadMap[key].declaredIn[0]?.filePath;
+
+    // Exports
+    if (exportedSymbols.has(name) && declaringFile) {
+      if (!deadMap[key].exportedFrom.includes(declaringFile)) {
+        deadMap[key].exportedFrom.push(declaringFile);
       }
+    }
+
+    // Imports — attribute based on import source basename matching
+    if (importedSymbols.has(name)) {
+      const allKeysForName = nameToKeys.get(name) ?? [];
+      const isUniqueDeclaration = allKeysForName.length === 1;
+
+      importedSymbols.get(name)!.forEach(importInfo => {
+        let shouldAttribute = false;
+
+        if (isUniqueDeclaration) {
+          // Only one declaration for this name — attribute all imports to it
+          shouldAttribute = true;
+        } else if (declaringFile) {
+          // Multiple declarations — use basename of import source vs declaring file
+          const declaringBasename =
+            declaringFile.split('/').pop()?.replace(/\.[^.]+$/, '') ?? '';
+          const importBasename =
+            importInfo.importSource.split('/').pop()?.replace(/\.[^.]+$/, '') ?? '';
+          shouldAttribute =
+            declaringBasename !== '' && declaringBasename === importBasename;
+        }
+
+        if (shouldAttribute) {
+          deadMap[key].importedIn.push({
+            filePath: importInfo.filePath,
+            usedAfterImport: false
+          });
+        }
+      });
     }
   });
 }
@@ -321,10 +368,11 @@ function analyzeHtmlFileUsage(
   fileContent: string,
   name: string,
   deadMap: Record<string, IDeadCodeInfo>,
-  scriptSrcs: Set<string>
+  scriptSrcs: Set<string>,
+  key: string
 ): void {
   const withoutComments = removeComments(fileContent);
-  const isDeclaredInImportedScript = deadMap[name].declaredIn.some(decl => {
+  const isDeclaredInImportedScript = deadMap[key].declaredIn.some(decl => {
     const declaredFileName = decl.filePath.split('/').pop() || '';
     return scriptSrcs.has(declaredFileName);
   });
@@ -338,88 +386,72 @@ function analyzeHtmlFileUsage(
       .join('\n');
 
     if (scriptContent.includes(name)) {
-      deadMap[name].usageCount++;
+      deadMap[key].usageCount++;
     }
   }
 }
 
 /**
- * Updates information about usage after import
+ * Updates information about usage after import.
+ * key is a file-scoped deadMap key (filePath::symbolName).
  */
 function updateUsageAfterImport(
   filePath: string,
-  name: string,
+  key: string,
   deadMap: Record<string, IDeadCodeInfo>,
   usageInfo: UsageContext
 ): void {
-  const importIndex = deadMap[name].importedIn.findIndex(
-    item => item.filePath === filePath
-  );
+  const entry = deadMap[key];
+  if (!entry) return;
+
+  const importIndex = entry.importedIn.findIndex(item => item.filePath === filePath);
 
   if (importIndex !== -1) {
-    // Found record about import of the symbol in this file
+    // This file imports the symbol — mark as used if usage found
     if (usageInfo.usageCount > 0) {
-      deadMap[name].importedIn[importIndex].usedAfterImport = true;
-      deadMap[name].usageCount += usageInfo.usageCount;
+      entry.importedIn[importIndex].usedAfterImport = true;
+      entry.usageCount += usageInfo.usageCount;
     }
-  } else if (
-    deadMap[name].declaredIn.some(decl => decl.filePath === filePath)
-  ) {
-    // Symbol declared in this file
+  } else if (entry.declaredIn[0]?.filePath === filePath) {
+    // Local usage in the declaring file
     if (usageInfo.usageCount > 0) {
-      deadMap[name].usageCount += usageInfo.usageCount;
+      entry.usageCount += usageInfo.usageCount;
     }
   }
 }
 
 /**
- * Analyzes usages of names in files
+ * Analyzes actual symbol usage across a batch of files.
+ * Requires initializeDeadCodeStructure and populateExportImportInfo to have been
+ * called once before the first batch.
  */
-export function analyzeUsages(
-  collectedNames: string[],
+export function analyzeUsagesBatch(
+  collectedKeys: string[],
   files: Map<string, string>,
   deadMap: Record<string, IDeadCodeInfo>,
   exportedSymbols: Set<string>,
   importedSymbols: Map<string, IImportedSymbol[]>,
   onFileProcessed?: (filePath: string) => void
 ): void {
-  if (collectedNames.length === 0) {
-    return;
-  }
-
-  // Initialize structure with zero counters
-  initializeDeadCodeStructure(
-    collectedNames,
-    deadMap,
-    exportedSymbols,
-    importedSymbols
-  );
-
-  // Fill information about exports and imports
-  populateExportImportInfo(
-    collectedNames,
-    deadMap,
-    exportedSymbols,
-    importedSymbols
-  );
-
-  // Track HTML files that have script imports
   const htmlFilesWithScripts = collectHtmlScriptDependencies(files);
 
-  // Analyze usage after import for all names (declared + imported)
+  // Combine file-scoped deadMap keys with plain names from importedSymbols
   const allNamesToAnalyze = new Set([
-    ...collectedNames,
+    ...collectedKeys,
     ...Array.from(importedSymbols.keys())
   ]);
 
   for (const [filePath, fileContent] of files.entries()) {
     const withoutComments = removeComments(fileContent);
 
-    allNamesToAnalyze.forEach(name => {
+    allNamesToAnalyze.forEach(keyOrName => {
+      const isFileScoped = keyOrName.includes(KEY_SEPARATOR);
+      const name = isFileScoped ? extractNameFromKey(keyOrName) : keyOrName;
+
       // For HTML files, check both inline scripts and imported scripts
-      if (filePath.endsWith('.html') && deadMap[name]) {
+      if (filePath.endsWith('.html') && isFileScoped && deadMap[keyOrName]) {
         const scriptSrcs = htmlFilesWithScripts.get(filePath) || new Set();
-        analyzeHtmlFileUsage(fileContent, name, deadMap, scriptSrcs);
+        analyzeHtmlFileUsage(fileContent, name, deadMap, scriptSrcs, keyOrName);
       }
 
       // Regular file analysis
@@ -428,29 +460,60 @@ export function analyzeUsages(
         importedSymbols.has(name) &&
         importedSymbols.get(name)!.some(importInfo => importInfo.filePath === filePath);
 
+      // If the symbol was imported with an alias (import { a as b }), search by local binding name
+      let searchName = name;
+      if (isImported) {
+        const importInfo = importedSymbols.get(name)!.find(i => i.filePath === filePath);
+        if (importInfo?.localName) {
+          searchName = importInfo.localName;
+        }
+      }
+
       const usageInfo = analyzeSymbolUsage(
         withoutComments,
-        name,
+        searchName,
         isExported,
         isImported
       );
 
-      // Update information about usage after import
-      if (deadMap[name]) {
-        updateUsageAfterImport(filePath, name, deadMap, usageInfo);
+      // Update deadMap usage for file-scoped declared symbols
+      if (isFileScoped && deadMap[keyOrName]) {
+        updateUsageAfterImport(filePath, keyOrName, deadMap, usageInfo);
       }
-      
-      // Also update importedSymbols if this symbol is imported in this file
+
+      // Update importedSymbols usage tracking (always by plain name)
       if (importedSymbols.has(name)) {
         updateImportedSymbolUsage(filePath, name, importedSymbols, usageInfo);
       }
     });
 
-    // Call progress callback for each processed file
     if (onFileProcessed) {
       onFileProcessed(filePath);
     }
   }
+}
+
+/**
+ * Analyzes usages of names in files.
+ * Calls initializeDeadCodeStructure, populateExportImportInfo, and analyzeUsagesBatch
+ * in sequence. For batch processing (to keep event loop responsive), call these three
+ * functions separately via DeadCodeChecker.analyzeUsagesAsync.
+ */
+export function analyzeUsages(
+  collectedKeys: string[],
+  files: Map<string, string>,
+  deadMap: Record<string, IDeadCodeInfo>,
+  exportedSymbols: Set<string>,
+  importedSymbols: Map<string, IImportedSymbol[]>,
+  onFileProcessed?: (filePath: string) => void
+): void {
+  if (collectedKeys.length === 0) {
+    return;
+  }
+
+  initializeDeadCodeStructure(collectedKeys, deadMap, exportedSymbols, importedSymbols);
+  populateExportImportInfo(collectedKeys, deadMap, exportedSymbols, importedSymbols);
+  analyzeUsagesBatch(collectedKeys, files, deadMap, exportedSymbols, importedSymbols, onFileProcessed);
 }
 
 /**
@@ -505,19 +568,14 @@ export function isDeadCode(
     return true;
   }
 
-  // Case 3: Declared, exported, but not imported and not used locally
-  // Exception: Don't mark as dead code if it's likely a component or module export
+  // Case 3: Declared, exported, but not imported internally.
+  // An exported symbol without internal consumers is NOT considered dead code —
+  // it may be a public API consumed by external packages or users of the library.
   if (
-    occurrences.usageCount === 0 &&
     exportedSymbols.has(name) &&
     (!importedSymbols.has(name) || importedSymbols.get(name)!.length === 0)
   ) {
-    // Check if this might be a React component or other intended export
-    const isLikelyComponent = name.charAt(0) === name.charAt(0).toUpperCase(); // PascalCase
-    if (isLikelyComponent) {
-      return false; // Don't mark components as dead code if they are exported
-    }
-    return true;
+    return false;
   }
 
   // Case 4: Exported and imported, but not used after import

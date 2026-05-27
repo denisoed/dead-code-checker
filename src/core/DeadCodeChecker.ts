@@ -6,13 +6,16 @@ import { getAllFiles, readFileContent } from './fileSystem';
 import {
   findDeclarations,
   isBuiltInFunctionOrVariable,
-  processReturnStatements,
   processESModuleImports,
   processCommonJSImports,
   processESModuleExports,
   processCommonJSExports
 } from './declarations';
-import { analyzeUsages } from './analysis';
+import {
+  analyzeUsagesBatch,
+  initializeDeadCodeStructure,
+  populateExportImportInfo
+} from './analysis';
 import { createReport, displayReport } from './reporting';
 import { ProgressTracker, IProgressConfig } from './progress';
 
@@ -91,8 +94,11 @@ class DeadCodeChecker {
       );
 
       declaredNames.forEach(code => {
-        if (typeof this.deadMap[code.name] !== 'object') {
-          this.deadMap[code.name] = {
+        // Use a file-scoped key (filePath::name) to avoid collisions between
+        // identically-named symbols declared in different files.
+        const symbolKey = `${filePath}::${code.name}`;
+        if (typeof this.deadMap[symbolKey] !== 'object') {
+          this.deadMap[symbolKey] = {
             declaredIn: [],
             declarationCount: 0,
             exportCount: 0,
@@ -102,7 +108,7 @@ class DeadCodeChecker {
             importedIn: []
           };
         }
-        this.deadMap[code.name].declaredIn.push({
+        this.deadMap[symbolKey].declaredIn.push({
           filePath,
           line: code.line
         });
@@ -112,7 +118,6 @@ class DeadCodeChecker {
       processESModuleExports(fileContent, this.exportedSymbols);
       processCommonJSImports(fileContent, filePath, this.importedSymbols);
       processESModuleImports(fileContent, filePath, this.importedSymbols);
-      processReturnStatements(fileContent, this.exportedSymbols);
       
       this.progressTracker.updateStage('processing', 1, filePath);
       
@@ -140,27 +145,42 @@ class DeadCodeChecker {
   }
 
   private async analyzeUsagesAsync(fileContents: Map<string, string>): Promise<void> {
-    let analyzedFiles = 0;
+    const collectedKeys = Object.keys(this.deadMap);
+
+    // Initialize counters and populate export/import info once for all files.
+    // This must happen before any batch so that reset does not clobber results.
+    initializeDeadCodeStructure(
+      collectedKeys,
+      this.deadMap,
+      this.exportedSymbols,
+      this.importedSymbols
+    );
+    populateExportImportInfo(
+      collectedKeys,
+      this.deadMap,
+      this.exportedSymbols,
+      this.importedSymbols
+    );
+
     const fileEntries = Array.from(fileContents.entries());
-    
-    // Process files in batches to allow event loop processing
+
+    // Process files in batches to keep the event loop responsive for progress updates
     const batchSize = 10;
     for (let i = 0; i < fileEntries.length; i += batchSize) {
       const batch = fileEntries.slice(i, i + batchSize);
       const batchFileContents = new Map(batch);
-      
-      analyzeUsages(
-        Object.keys(this.deadMap),
+
+      analyzeUsagesBatch(
+        collectedKeys,
         batchFileContents,
         this.deadMap,
         this.exportedSymbols,
         this.importedSymbols,
         (filePath: string) => {
-          analyzedFiles++;
           this.progressTracker.updateStage('analyzing', 1, filePath);
         }
       );
-      
+
       // Allow event loop to process between batches
       if (i + batchSize < fileEntries.length) {
         await new Promise(resolve => setImmediate(resolve));

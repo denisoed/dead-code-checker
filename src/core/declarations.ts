@@ -327,12 +327,12 @@ export function processCommonJSImports(
     processImportedNames(match[1], filePath, match[2], importedSymbols);
   }
 
-  // Process const name = require('...').property
+  // Process const local = require('...') and const local = require('...').property
+  // match[1] = local variable name, match[2] = module path, match[3] = optional property
+  // Always track the local variable name (match[1]) — that is what is actually used in the file.
   REGEX.REQUIRE_DIRECT.lastIndex = 0;
   while ((match = REGEX.REQUIRE_DIRECT.exec(fileContent)) !== null) {
-    if (match[3]) {
-      addImportedSymbol(match[3], filePath, match[2], importedSymbols);
-    }
+    addImportedSymbol(match[1], filePath, match[2], importedSymbols);
   }
 }
 
@@ -370,11 +370,12 @@ export function processImportedNames(
 ): void {
   const importedNames = namesString.split(',').map(n => n.trim());
   importedNames.forEach(name => {
-    // Handle "name as alias" pattern
+    // Handle "originalName as localAlias" pattern
     const parts = name.split(/\s+as\s+/);
-    const actualName = parts[0].trim();
-    if (actualName) {
-      addImportedSymbol(actualName, filePath, importSource, importedSymbols);
+    const originalName = parts[0].trim();
+    const localName = parts.length > 1 ? parts[1].trim() : undefined;
+    if (originalName) {
+      addImportedSymbol(originalName, filePath, importSource, importedSymbols, localName);
     }
   });
 }
@@ -386,7 +387,8 @@ export function addImportedSymbol(
   name: string,
   filePath: string,
   importSource: string,
-  importedSymbols: Map<string, IImportedSymbol[]>
+  importedSymbols: Map<string, IImportedSymbol[]>,
+  localName?: string
 ): void {
   if (!importedSymbols.has(name)) {
     importedSymbols.set(name, []);
@@ -394,7 +396,8 @@ export function addImportedSymbol(
   importedSymbols.get(name)?.push({
     filePath,
     importSource,
-    usedAfterImport: false
+    usedAfterImport: false,
+    ...(localName ? { localName } : {})
   });
 }
 

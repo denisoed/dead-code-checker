@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { IDeadCodeInfo, IDeadCodeReport, IImportedSymbol, IReportSummary } from '../interfaces';
-import { isDeadCode, isExternalPackage } from './analysis';
+import { isDeadCode, isExternalPackage, extractNameFromKey } from './analysis';
 
 /**
  * Determines the declaration type based on the name and context
@@ -51,22 +51,28 @@ export function createReport(
 ): IDeadCodeReport[] {
   const reportList: IDeadCodeReport[] = [];
 
-  // First pass: collect regular dead code
-  for (const name of Object.keys(deadMap)) {
-    const occurrences = deadMap[name];
+  // Pre-compute the set of declared symbol names for O(1) lookup in second pass
+  const declaredNames = new Set(Object.keys(deadMap).map(extractNameFromKey));
+
+  // First pass: collect regular dead code (deadMap uses file-scoped keys: filePath::name)
+  for (const key of Object.keys(deadMap)) {
+    const name = extractNameFromKey(key);
+    const occurrences = deadMap[key];
 
     if (isDeadCode(name, occurrences, exportedSymbols, importedSymbols)) {
-      occurrences.declaredIn.forEach(decl => {
+      // Each file-scoped entry has exactly one declaring location
+      const decl = occurrences.declaredIn[0];
+      if (decl) {
         const fileContent = fileContents?.get(decl.filePath) || '';
         const declarationType = determineDeclarationType(name, fileContent, decl.line);
-        
+
         reportList.push({
           filePath: decl.filePath,
           line: decl.line,
           name: name,
           declarationType
         });
-      });
+      }
     }
   }
 
@@ -101,8 +107,8 @@ export function createReport(
     // Note: A symbol can be both unused in declaration file AND unused in import file
     for (const importInfo of importInfos) {
       if (!importInfo.usedAfterImport) {
-        // Check if this symbol exists in declarations (local import)
-        const existsInDeclarations = deadMap[importedSymbol] !== undefined;
+        // Check if this symbol exists in any file-scoped declaration
+        const existsInDeclarations = declaredNames.has(importedSymbol);
         
         if (existsInDeclarations) {
           // Local import of existing symbol but not used after import
